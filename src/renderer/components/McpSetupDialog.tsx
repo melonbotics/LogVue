@@ -59,7 +59,8 @@ export default function McpSetupDialog({ archiveRoot, onClose }: Props): JSX.Ele
 
         <p className="mcp-setup-intro">
           Add LogVue as a local stdio MCP server once in your agent client. This setup remains valid when LogVue is
-          updated or you select a different library.
+          closed, updated, or using a different library. The bridge contacts LogVue only when one of its tools is
+          called.
         </p>
 
         <section className="settings-section vertical">

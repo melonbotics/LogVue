@@ -20,9 +20,9 @@ Linux:   <Electron userData>/MCP/logvue-mcp.cjs
 
 Add that file to any MCP-compatible client as a local stdio server with command `node` and the bridge path as its only argument. The MCP setup dialog shows the exact path and provides generic server JSON plus optional Codex and Claude Code commands. No token or discovery-file argument is required.
 
-If LogVue is not running, the bridge probes both loopback and the Windows host used by WSL before starting its stdio transport. It exits in under a second when neither endpoint is available, so MCP clients do not wait on a long HTTP connection timeout.
+The bridge starts and advertises LogVue's tool contract without contacting the desktop app. It reads `mcp.json` and probes loopback or the Windows host used by WSL only when a LogVue tool is called. Consequently, an installed connector stays quiet while LogVue is closed; an attempted tool call returns a normal MCP tool error telling the caller to start LogVue.
 
-The configuration remains stable across LogVue updates, library changes, and WSL networking changes. In WSL, use the `/mnt/<drive>/...` spelling shown by the setup dialog. The bridge tries loopback first and only uses WSL default-route discovery when loopback is unavailable.
+The configuration remains stable across LogVue updates, library changes, and WSL networking changes. A bridge that was initialized while LogVue was closed can use the app after it opens without being restarted. In WSL, use the `/mnt/<drive>/...` spelling shown by the setup dialog. On each tool call, the bridge tries loopback first and only uses WSL default-route discovery when loopback is unavailable.
 
 ## Tools
 

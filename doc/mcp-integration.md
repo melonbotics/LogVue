@@ -14,7 +14,7 @@ Do not duplicate general filesystem search or file-editing tools in MCP.
 
 The Electron main process hosts a stateless Streamable HTTP MCP server on port `47831`. Each HTTP POST receives a fresh MCP server and transport, as required by the SDK's stateless lifecycle.
 
-All MCP clients use the same local stdio bridge. It connects over loopback on Windows, macOS, Linux, and mirrored-network WSL. In WSL NAT mode it falls back to the Windows host:
+All MCP clients use the same local stdio bridge. The bridge handles MCP initialization and tool listing locally, then connects on demand for a tool call. It connects over loopback on Windows, macOS, Linux, and mirrored-network WSL. In WSL NAT mode it falls back to the Windows host:
 
 ```text
 MCP client
@@ -32,7 +32,7 @@ LogVue permits unauthenticated loopback access and requires a stable random 256-
 
 The active archive is not part of the bridge configuration. Agents discover it from `get_status`, and all archive tools follow the library currently selected in LogVue.
 
-The bridge and discovery file live together. The bridge locates discovery automatically, tries `127.0.0.1` first, and only reads WSL's default route when it is actually running under WSL. LogVue refreshes the dependency-bundled bridge on every start.
+The bridge and discovery file live together. The bridge does not read discovery or probe the endpoint during MCP client startup. When a tool is invoked, it locates discovery automatically, tries `127.0.0.1` first, and only reads WSL's default route when it is actually running under WSL. LogVue refreshes the dependency-bundled bridge on every start.
 
 ## Client installation
 
@@ -54,6 +54,8 @@ claude mcp add --scope user logvue -- node "<displayed path>/logvue-mcp.cjs"
 ```
 
 Restart the client after initial configuration or tool-schema changes. Configuration is required once per client, not once per library or LogVue version.
+
+When LogVue is closed, the bridge still initializes cleanly and exposes the bundled tool schemas. It contacts the app only if one of those tools is called; that call returns an actionable tool error if the app is unavailable. Opening LogVue later makes subsequent calls work without restarting the MCP client.
 
 ## Tool contract
 
@@ -107,20 +109,20 @@ PATH=$HOME/.local/node/bin:$PATH npm run build
 PATH=$HOME/.local/node/bin:$PATH TZ=UTC npm test
 ```
 
-The current checkpoint passes the production build, full typecheck, and all 123 tests.
+The current checkpoint passes the production build, full typecheck, and full test suite.
 
 ## Troubleshooting
 
-- Missing `mcp.json` or `logvue-mcp.cjs`: LogVue has not started the MCP-enabled build on this user profile yet.
+- Missing `logvue-mcp.cjs`: LogVue has not started the MCP-enabled build on this user profile yet. A missing `mcp.json` does not break client startup, but LogVue tool calls fail until the app recreates it.
 - WSL `127.0.0.1` fails in NAT mode: use the stdio bridge rather than the direct HTTP URL.
 - HTTP 500 during initialization: ensure each stateless POST creates a fresh MCP server and transport.
-- A client retains an old failure: fully exit and restart it so configuration and schemas reload.
+- A client still reports an offline startup failure: start the updated LogVue build once to install the fail-lazy bridge, then fully exit and restart the client.
 - Restart both LogVue and the MCP client after tool-schema changes.
 
 ## Further work
 
 - Decide whether MCP is enabled by default or controlled by a setting.
-- Add protocol-level tests for initialization, tool listing, authentication, and NAT forwarding.
+- Expand protocol-level tests to cover direct endpoint authentication and WSL NAT forwarding.
 - Test Windows, WSL, relative, and archive-escape path resolution.
 - Add a cursor or date boundary if agents need logs older than the newest 100.
 - Improve structured error codes for duplicates, missing sessions, and unavailable sources.
@@ -129,4 +131,4 @@ The current checkpoint passes the production build, full typecheck, and all 123 
 
 - `c95544d` — initial action-oriented MCP prototype.
 - `b4e8990` — authenticated bridge supporting WSL NAT and mirrored networking.
-- Current checkpoint — corrected stateless lifecycle, bounded hub-log results, filesystem-first guidance, flexible paths, and session creation.
+- Current checkpoint — fail-lazy stdio startup, corrected stateless lifecycle, bounded hub-log results, filesystem-first guidance, flexible paths, and session creation.
