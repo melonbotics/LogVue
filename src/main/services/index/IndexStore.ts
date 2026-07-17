@@ -9,7 +9,7 @@ import { LOG_KINDS } from '@shared/constants/fileKinds'
 import { DERIVED_TABLES, INDEX_SCHEMA_VERSION, SCHEMA_SQL } from './schema'
 import type { FileMetadataRow, FileRow, IndexRows, SessionRow, TagRow } from './rebuild'
 import { fromArchiveKey, toArchiveKey } from './indexPaths'
-import { buildSessionQuery } from './query'
+import { buildSessionQuery, escapeLikeText } from './query'
 import type { ImportIdentity } from '../import/identity'
 
 /** Upsert a `sessions` row keyed by path (used by both a full rebuild and a single-session reindex). */
@@ -329,7 +329,7 @@ export class IndexStore {
     let textClause = '1'
     const trimmed = text?.trim()
     if (trimmed) {
-      params.ftext = `%${trimmed}%`
+      params.ftext = `%${escapeLikeText(trimmed)}%`
       // Stored session keys are archive-relative with '/' separators on every platform.
       textClause =
         `(f.filename LIKE @ftext ESCAPE '\\'` +

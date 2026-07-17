@@ -1,5 +1,6 @@
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { writeFile } from 'fs/promises'
 
 export const SESSION_JSON = 'session.json'
 export const NOTES_FILE = 'notes.md'
@@ -67,4 +68,26 @@ export function uniqueFilePath(dir: string, filename: string): string {
     n += 1
   } while (existsSync(candidate))
   return candidate
+}
+
+/**
+ * Atomically claim a non-colliding file path by creating an empty file. Unlike
+ * {@link uniqueFilePath}, this remains safe when two imports start concurrently.
+ */
+export async function reserveUniqueFilePath(dir: string, filename: string): Promise<string> {
+  const dot = filename.lastIndexOf('.')
+  const stem = dot > 0 ? filename.slice(0, dot) : filename
+  const ext = dot > 0 ? filename.slice(dot) : ''
+  let n = 1
+
+  while (true) {
+    const candidate = join(dir, n === 1 ? filename : `${stem}_${n}${ext}`)
+    try {
+      await writeFile(candidate, '', { flag: 'wx' })
+      return candidate
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+      n += 1
+    }
+  }
 }

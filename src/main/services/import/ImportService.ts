@@ -1,5 +1,5 @@
 import { basename } from 'path'
-import { utimes } from 'fs/promises'
+import { rm, utimes } from 'fs/promises'
 import type {
   BatchImportRequest,
   HubLogRef,
@@ -11,7 +11,7 @@ import type {
 import type { Session, SessionFile } from '@shared/types/session'
 import { createSession } from '../archive/ArchiveService'
 import { readMetadataOrDefault, writeMetadata } from '../archive/SessionStore'
-import { uniqueFilePath } from '../archive/paths'
+import { reserveUniqueFilePath } from '../archive/paths'
 import type { AdbLike } from '../adb/AdbClient'
 import { getIndexStore } from '../index/indexService'
 import { guessFileKind } from './fileKind'
@@ -62,12 +62,24 @@ export async function importToSession(
   const { metadata } = readMetadataOrDefault(req.sessionPath)
 
   hooks?.onFileStart?.(req.remotePath)
-  const destPath = uniqueFilePath(req.sessionPath, req.filename)
-  await withPullProgress(
-    destPath,
-    (bytes) => hooks?.onFileBytes?.(req.remotePath, bytes),
-    () => adb.pull(req.remotePath, destPath)
-  )
+  const destPath = await reserveUniqueFilePath(req.sessionPath, req.filename)
+  try {
+    await withPullProgress(
+      destPath,
+      (bytes) => hooks?.onFileBytes?.(req.remotePath, bytes),
+      () => adb.pull(req.remotePath, destPath)
+    )
+  } catch (error) {
+    // ADB can write part of the destination before reporting a disconnect or pull
+    // failure. This path was atomically reserved for this import, so cleanup cannot
+    // remove a pre-existing file or another concurrent import's destination.
+    try {
+      await rm(destPath, { force: true })
+    } catch (cleanupError) {
+      console.error(`Unable to remove incomplete import at ${destPath}:`, cleanupError)
+    }
+    throw error
+  }
   const recordedMs = req.recordedAt ? Date.parse(req.recordedAt) : NaN
   if (Number.isFinite(recordedMs)) {
     const recordedDate = new Date(recordedMs)

@@ -8,6 +8,11 @@ export interface BuiltQuery {
   params: Record<string, unknown>
 }
 
+/** Escape user text so SQLite LIKE treats its wildcard and escape characters literally. */
+export function escapeLikeText(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&')
+}
+
 /** Emit `col IN (@p0, @p1, …)` and register each value under a unique name. */
 function inClause(
   col: string,
@@ -53,7 +58,7 @@ export function buildSessionQuery(query: SessionQuery): BuiltQuery {
 
   const text = query.text?.trim()
   if (text) {
-    params.text = `%${text}%`
+    params.text = `%${escapeLikeText(text)}%`
     clauses.push(descendantTextMatch('text'))
   }
 
