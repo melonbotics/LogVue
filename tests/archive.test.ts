@@ -281,7 +281,7 @@ describe('updateMeta', () => {
     await new Promise((r) => setTimeout(r, 5))
     const updated = updateMeta(s.path, { tags: ['swerve', 'heading-pid'] })
     expect(updated.metadata.tags).toEqual(['swerve', 'heading-pid'])
-    expect(updated.metadata.updated_at >= before).toBe(true)
+    expect(updated.metadata.updated_at > before).toBe(true)
     expect(updated.metadata.display_name).toBe('Tuning') // preserved
   })
 })

@@ -2,7 +2,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSessionCommand, importHubLogCommand } from '../src/main/commands'
+import {
+  createSessionCommand,
+  deleteSessionCommand,
+  importHubLogCommand
+} from '../src/main/commands'
 import type { AdbLike } from '../src/main/services/adb/AdbClient'
 import { createSession } from '../src/main/services/archive/ArchiveService'
 
@@ -94,5 +98,74 @@ describe('archive commands', () => {
     expect(effects.reindexSession).toHaveBeenCalledWith(root, session.path)
     expect(effects.notifyArchiveChanged).toHaveBeenCalledWith(root, [session.path])
     expect(calls).toEqual(['pause', 'reindex', 'notify', 'end', 'resume'])
+  })
+
+  it('always resumes the watcher when an import throws and skips projection side effects', async () => {
+    const session = createSession({
+      parentPath: root,
+      displayName: 'Failed import target',
+      sessionType: 'test_session'
+    })
+    const calls: string[] = []
+    const effects = {
+      pauseArchiveWatcher: vi.fn(() => {
+        calls.push('pause')
+        return () => calls.push('resume')
+      }),
+      reindexSession: vi.fn(),
+      notifyArchiveChanged: vi.fn()
+    }
+    const adb = {
+      pull: vi.fn(async () => {
+        throw new Error('device disconnected')
+      })
+    }
+
+    await expect(
+      importHubLogCommand(
+        adb as unknown as AdbLike,
+        root,
+        {
+          remotePath: '/sdcard/FIRST/PsiKit/Failed_log_1.rlog',
+          filename: 'Failed_log_1.rlog',
+          fileSize: 3,
+          sessionPath: session.path,
+          force: true
+        },
+        undefined,
+        effects
+      )
+    ).rejects.toThrow('device disconnected')
+
+    expect(calls).toEqual(['pause', 'resume'])
+    expect(effects.reindexSession).not.toHaveBeenCalled()
+    expect(effects.notifyArchiveChanged).not.toHaveBeenCalled()
+  })
+
+  it('deletes archive truth before rebuilding the index and notifying renderers', () => {
+    const session = createSession({
+      parentPath: root,
+      displayName: 'Delete through command',
+      sessionType: 'test_session'
+    })
+    const calls: string[] = []
+    const effects = {
+      rebuild: vi.fn(() => {
+        expect(existsSync(session.path)).toBe(false)
+        calls.push('rebuild')
+        return { sessions: 0, files: 0 }
+      }),
+      notifyArchiveChanged: vi.fn((_archiveRoot: string, paths: string[]) => {
+        expect(paths).toEqual([session.path])
+        calls.push('notify')
+      })
+    }
+
+    const summary = deleteSessionCommand(root, session.path, effects)
+
+    expect(summary.path).toBe(session.path)
+    expect(effects.rebuild).toHaveBeenCalledWith(root)
+    expect(effects.notifyArchiveChanged).toHaveBeenCalledWith(root, [session.path])
+    expect(calls).toEqual(['rebuild', 'notify'])
   })
 })

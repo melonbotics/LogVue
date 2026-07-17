@@ -29,6 +29,12 @@ describe('buildSessionQuery', () => {
     expect(where).toContain('ancestor.path')
   })
 
+  it('treats SQL LIKE wildcard characters as literal search text', () => {
+    const { params } = buildSessionQuery({ text: String.raw`100%_ready\now` })
+
+    expect(params.text).toBe(String.raw`%100\%\_ready\\now%`)
+  })
+
   it('emits a parametrised IN clause for multi-value facets', () => {
     const { where, params } = buildSessionQuery({
       sessionTypes: ['official_match', 'practice_match']

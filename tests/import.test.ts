@@ -130,7 +130,7 @@ describe('importToSession', () => {
       original_filename: 'AutoOpMode_log_20260704_115005_104.rlog',
       file_size_bytes: 3
     })
-    expect(meta.updated_at >= before).toBe(true)
+    expect(meta.updated_at > before).toBe(true)
   })
 
   it('persists the corrected recording time and applies it to the imported file', async () => {
@@ -168,6 +168,28 @@ describe('importToSession', () => {
     })
     expect(res.status).toBe('imported')
     expect(existsSync(join(bare, 'session.json'))).toBe(true)
+  })
+
+  it('removes an incomplete destination when adb pull fails after writing bytes', async () => {
+    const session = createSession({ parentPath: root, displayName: 'Q4', sessionType: 'official_match' })
+    const filename = 'Interrupted_log_1.rlog'
+    const partialAdb = {
+      pull: vi.fn(async (_remote: string, destination: string) => {
+        writeFileSync(destination, 'incomplete')
+        throw new Error('device disconnected')
+      })
+    }
+
+    await expect(
+      importToSession(partialAdb as unknown as AdbLike, null, {
+        ...ref(filename),
+        sessionPath: session.path
+      })
+    ).rejects.toThrow('device disconnected')
+
+    expect(existsSync(join(session.path, filename))).toBe(false)
+    const metadata = JSON.parse(readFileSync(join(session.path, 'session.json'), 'utf-8'))
+    expect(metadata.files).toEqual([])
   })
 })
 
