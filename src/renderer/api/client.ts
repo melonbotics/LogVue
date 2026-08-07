@@ -14,7 +14,10 @@ export const api = {
   getInfo: () => window.api.invoke('app:getInfo'),
   openThirdPartyNotices: () => window.api.invoke('app:openThirdPartyNotices'),
   mcp: {
-    status: () => window.api.invoke('mcp:status')
+    status: () => window.api.invoke('mcp:status'),
+    agentOpModeStatus: () => window.api.invoke('mcp:agentOpModeStatus'),
+    setAgentOpModeControlEnabled: (enabled: boolean) =>
+      window.api.invoke('mcp:setAgentOpModeControlEnabled', enabled)
   },
   settings: {
     get: () => window.api.invoke('settings:get'),

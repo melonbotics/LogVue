@@ -5,6 +5,11 @@ import { getSettings } from './config/settings'
 import { closeIndex, ensureIndexBuilt } from './services/index/indexService'
 import { startArchiveWatcher, stopArchiveWatcher } from './services/watcher/Watcher'
 import { startMcpServer, stopMcpServer } from './mcp/server'
+import {
+  setAgentOpModeControlEnabled,
+  startAgentOpModeService,
+  stopAgentOpModeService
+} from './services/opmode/service'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -26,6 +31,33 @@ function createWindow(): void {
     }
   })
 
+  let uiLossHandled = false
+  const failClosedForUiLoss = (reason: string): void => {
+    if (uiLossHandled) return
+    uiLossHandled = true
+    void setAgentOpModeControlEnabled(false).catch((error) => {
+      console.error(`Failed to release the agent OpMode lease after ${reason}:`, error)
+    })
+  }
+
+  // The operator gate must not remain armed without a working, visible LogVue UI.
+  // Any release failure still falls back to the robot-side five-second watchdog.
+  win.webContents.on('render-process-gone', () => failClosedForUiLoss('renderer exit'))
+  win.webContents.on(
+    'did-fail-load',
+    (_event, _errorCode, _errorDescription, _validatedUrl, isMainFrame) => {
+      if (isMainFrame) failClosedForUiLoss('renderer load failure')
+    }
+  )
+  win.webContents.on('did-finish-load', () => {
+    uiLossHandled = false
+  })
+  win.on('unresponsive', () => failClosedForUiLoss('renderer becoming unresponsive'))
+  win.on('responsive', () => {
+    uiLossHandled = false
+  })
+  win.on('closed', () => failClosedForUiLoss('window close'))
+
   win.on('ready-to-show', () => win.show())
 
   // External links open in the user's browser, never in-app.
@@ -46,6 +78,9 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   registerIpcHandlers()
+  // The lease heartbeat lives in a worker thread so synchronous archive/index work
+  // in Electron main cannot starve the robot's five-second dead-man timer.
+  startAgentOpModeService()
   // Cold start (§6.2): open the index for the saved archive root and build it if
   // empty/stale, before the renderer asks for anything. The index is disposable,
   // so a failure here (e.g. a locked/corrupt file) must not block the UI.
@@ -72,6 +107,7 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   void stopMcpServer()
+  void stopAgentOpModeService()
   stopArchiveWatcher()
   closeIndex()
 })

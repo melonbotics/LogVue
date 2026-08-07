@@ -274,6 +274,25 @@ input[type="checkbox"] {
   background: var(--panel-2);
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
 }
+.agent-control-live {
+  color: #ff8a99;
+  border-color: color-mix(in srgb, var(--red) 65%, var(--border));
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  cursor: pointer;
+}
+.agent-control-live:hover {
+  color: #fff;
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 20%, transparent);
+}
+.agent-control-live .dot {
+  background: var(--red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 18%, transparent);
+}
+.agent-control-disable {
+  color: var(--muted);
+  font-weight: 400;
+}
 .source-status.off .dot {
   background: color-mix(in srgb, var(--warn) 70%, transparent);
 }
@@ -1573,6 +1592,54 @@ button.chip.meta.more {
 }
 .mcp-copy-button {
   align-self: flex-start;
+}
+.agent-opmode-control {
+  gap: 0.7rem;
+}
+.agent-opmode-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.agent-opmode-state {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+}
+.agent-opmode-state.state-active {
+  color: var(--good);
+}
+.agent-opmode-state.state-degraded,
+.agent-opmode-state.state-acquiring {
+  color: var(--warn);
+}
+.agent-opmode-state .dot {
+  background: currentColor;
+}
+.agent-opmode-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  color: var(--muted);
+}
+.agent-opmode-details code {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.agent-opmode-control .warning {
+  color: var(--warn);
+}
+.agent-opmode-warning {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
+  border-radius: 6px;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 .settings-section {
   display: flex;

@@ -29,6 +29,7 @@ import type {
   NewSessionImportResult
 } from './import'
 import type { Task } from './tasks'
+import type { AgentOpModeLeaseStatus } from './opmode'
 import type {
   FtcScoutEventSearchRequest,
   FtcScoutEventSearchResult,
@@ -78,6 +79,10 @@ export interface IpcApi {
   // ── MCP ────────────────────────────────────────────────────
   /** Whether the MCP endpoint, discovery file, and installed bridge are available. */
   'mcp:status': () => Promise<McpStatus>
+  /** Runtime-only operator gate and robot lease heartbeat health (never credentials/nonces). */
+  'mcp:agentOpModeStatus': () => Promise<AgentOpModeLeaseStatus>
+  /** Arm/disarm the main-process robot lease. Always starts disabled on app launch. */
+  'mcp:setAgentOpModeControlEnabled': (enabled: boolean) => Promise<AgentOpModeLeaseStatus>
 
   // ── settings / archive root ────────────────────────────────
   'settings:get': () => Promise<AppSettings>

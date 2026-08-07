@@ -16,7 +16,7 @@ LogVue is a desktop app for organising and reviewing FTC Control Hub RLOG files.
 - Links notes directly to logs so an observation can highlight the relevant file.
 - Syncs event and match data from FTCScout.
 - Keeps session metadata and notes in filesystem-readable `session.json` and `notes.md` sidecars for agentic browsing.
-- Provides MCP tools for live Control Hub status, log discovery, session creation, and managed importing.
+- Provides MCP tools for live Control Hub status, log discovery, session creation, managed importing, and explicitly operator-gated FTC OpMode control.
 
 ## Agentic support
 

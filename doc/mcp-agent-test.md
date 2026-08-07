@@ -16,6 +16,8 @@ bridge manually.
 The agent must not read, print, or edit `mcp.json`, the bearer token,
 `index.sqlite`, or any other LogVue internal file.
 
+Robot OpMode control is excluded from the normal smoke test. Do not enable or exercise it on a robot unless the robot is physically secured, the field is clear, a human is ready at the Driver Station, and the robot-side gate was deliberately armed by running `Enable/Disable Agent OpMode Control` from the `Dashboard` group and pressing Start. A safe contract-only check may call `get_robot_status` while LogVue's operator switch is off and confirm that it returns an MCP tool error without changing robot state. Never invent or reuse an `init`/`start` nonce; `stop` must omit the nonce entirely.
+
 ## Quick read-only smoke test
 
 Give the agent this task:

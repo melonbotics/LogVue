@@ -3,10 +3,12 @@ import type { AppSettings } from '@shared/types/session'
 import type { McpStatus } from '@shared/types/ipc'
 import {
   useAdbStatus,
+  useAgentOpModeStatus,
   useConnectAdb,
   useMcpStatus,
   usePickArchiveRoot,
-  useRebuildIndex
+  useRebuildIndex,
+  useSetAgentOpModeControlEnabled
 } from '../api/hooks'
 import { formatRelative } from '../lib/time'
 import { useAppStore } from '../stores/appStore'
@@ -26,6 +28,8 @@ export default function Toolbar({ settings, onNewTopLevel, onSettings, onMcpSetu
   const setView = useAppStore((s) => s.setView)
   const { data: adb } = useAdbStatus()
   const { data: mcp } = useMcpStatus()
+  const { data: agentOpMode } = useAgentOpModeStatus()
+  const setAgentOpModeControl = useSetAgentOpModeControlEnabled()
   const connect = useConnectAdb()
   const sourceIsFolder = settings.hubDataSource === 'folder'
   const sourceName = sourceIsFolder ? 'Folder Import' : 'Control Hub'
@@ -84,6 +88,24 @@ export default function Toolbar({ settings, onNewTopLevel, onSettings, onMcpSetu
       </div>
 
       <div className="spacer" />
+
+      {agentOpMode?.operatorEnabled && (
+        <button
+          type="button"
+          className="source-status agent-control-live"
+          title="Disable agent OpMode control immediately"
+          disabled={setAgentOpModeControl.isPending}
+          onClick={() => setAgentOpModeControl.mutate(false)}
+        >
+          <span className="dot" />
+          <span>
+            {setAgentOpModeControl.isPending
+              ? 'Disabling agent control…'
+              : `Agent control ${agentOpMode.state === 'active' ? 'ON' : agentOpMode.state}`}
+          </span>
+          {!setAgentOpModeControl.isPending && <span className="agent-control-disable">· disable</span>}
+        </button>
+      )}
 
       <McpBadge status={mcp} onClick={onMcpSetup} />
 

@@ -117,7 +117,7 @@ export default function App(): JSX.Element {
       )}
       {showSettings && <SettingsDialog settings={settings} onClose={() => setShowSettings(false)} />}
       {showMcpSetup && (
-        <McpSetupDialog archiveRoot={settings.archiveRoot} onClose={() => setShowMcpSetup(false)} />
+        <McpSetupDialog settings={settings} onClose={() => setShowMcpSetup(false)} />
       )}
       <ActivityToasts />
     </div>

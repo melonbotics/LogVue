@@ -1,9 +1,14 @@
 import { useState } from 'react'
+import type { AppSettings } from '@shared/types/session'
 import { formatRelative } from '../lib/time'
-import { useMcpStatus } from '../api/hooks'
+import {
+  useAgentOpModeStatus,
+  useMcpStatus,
+  useSetAgentOpModeControlEnabled
+} from '../api/hooks'
 
 interface Props {
-  archiveRoot: string | null
+  settings: AppSettings
   onClose: () => void
 }
 
@@ -12,8 +17,10 @@ function toWslPath(path: string): string {
   return windows ? `/mnt/${windows[1].toLowerCase()}/${windows[2].replace(/\\/g, '/')}` : path
 }
 
-export default function McpSetupDialog({ archiveRoot, onClose }: Props): JSX.Element {
+export default function McpSetupDialog({ settings, onClose }: Props): JSX.Element {
   const { data: status } = useMcpStatus()
+  const { data: opModeStatus } = useAgentOpModeStatus()
+  const setOpModeControl = useSetAgentOpModeControlEnabled()
   const [copied, setCopied] = useState<string | null>(null)
   const available = !!status?.running && !!status.discoveryReady && !!status.bridgeReady
   const discoveryPath = status?.discoveryPath ?? '<LogVue user-data>/mcp.json'
@@ -72,9 +79,83 @@ export default function McpSetupDialog({ archiveRoot, onClose }: Props): JSX.Ele
           <span className="muted small">Its connection details are managed automatically in:</span>
           <code className="settings-path" title={discoveryPath}>{discoveryPath}</code>
           <span className="muted small">Active library:</span>
-          <code className="settings-path" title={archiveRoot ?? ''}>
-            {archiveRoot ?? 'No library selected'}
+          <code className="settings-path" title={settings.archiveRoot ?? ''}>
+            {settings.archiveRoot ?? 'No library selected'}
           </code>
+        </section>
+
+        <section className="settings-section vertical agent-opmode-control">
+          <div className="agent-opmode-heading">
+            <div>
+              <h3>Agent OpMode control</h3>
+              <span className="muted small">
+                Runtime-only operator permission. It always starts disabled when LogVue launches.
+              </span>
+            </div>
+            <button
+              type="button"
+              className={opModeStatus?.operatorEnabled ? 'danger sm' : 'sm'}
+              disabled={
+                setOpModeControl.isPending ||
+                (!opModeStatus?.operatorEnabled && settings.hubDataSource !== 'adb')
+              }
+              onClick={() =>
+                setOpModeControl.mutate(!(opModeStatus?.operatorEnabled ?? false))
+              }
+            >
+              {setOpModeControl.isPending
+                ? 'Updating…'
+                : opModeStatus?.operatorEnabled
+                  ? 'Disable control'
+                  : 'Enable control'}
+            </button>
+          </div>
+
+          <div className={`agent-opmode-state state-${opModeStatus?.state ?? 'disabled'}`}>
+            <span className="dot" />
+            <strong>
+              {!opModeStatus
+                ? 'Checking lease worker…'
+                : opModeStatus.state === 'active'
+                  ? 'Robot lease active'
+                  : opModeStatus.state === 'degraded'
+                    ? 'Lease heartbeat degraded'
+                    : opModeStatus.state === 'acquiring'
+                      ? 'Waiting for robot lease…'
+                      : 'Agent control disabled'}
+            </strong>
+            {opModeStatus?.lastHeartbeatAt && (
+              <span className="muted small">
+                · last heartbeat ACK {heartbeatAge(opModeStatus.lastHeartbeatAt)}
+              </span>
+            )}
+          </div>
+
+          {opModeStatus?.operatorEnabled && (
+            <div className="agent-opmode-details small">
+              <span>Dashboard: {booleanState(opModeStatus.dashboardEnabled)}</span>
+              <span>Robot agent gate: {booleanState(opModeStatus.agentControlArmed)}</span>
+              <span>Robot available: {booleanState(opModeStatus.robotAvailable)}</span>
+              {opModeStatus.endpoint && <code>{opModeStatus.endpoint}</code>}
+            </div>
+          )}
+
+          {settings.hubDataSource !== 'adb' && (
+            <span className="warning small">Select Control Hub as the Hub Log Source before enabling.</span>
+          )}
+          {(setOpModeControl.error || opModeStatus?.lastError) && (
+            <span className="warning small">
+              {setOpModeControl.error instanceof Error
+                ? setOpModeControl.error.message
+                : opModeStatus?.lastError}
+            </span>
+          )}
+          <p className="agent-opmode-warning">
+            Enabling this lets an MCP agent initialize, start, and stop robot OpModes. On the Driver Station,
+            run <code>Enable/Disable Agent OpMode Control</code> from the <code>Dashboard</code> group and press
+            Start to arm the independent robot-side gate. Keep the robot secured and the field clear;
+            disabling this switch releases the lease and the robot watchdog stops any agent-owned OpMode.
+          </p>
         </section>
 
         <section className="settings-section vertical">
@@ -132,4 +213,13 @@ export default function McpSetupDialog({ archiveRoot, onClose }: Props): JSX.Ele
       </div>
     </div>
   )
+}
+
+function booleanState(value: boolean | null): string {
+  return value === null ? 'unknown' : value ? 'enabled' : 'disabled'
+}
+
+function heartbeatAge(timestamp: string): string {
+  const ageMs = Math.max(0, Date.now() - Date.parse(timestamp))
+  return `${Math.floor(ageMs / 1000)}s ago`
 }

@@ -19,6 +19,7 @@ const keys = {
   notes: (path: string) => ['archive', 'notes', path] as const,
   adbStatus: ['adb', 'status'] as const,
   mcpStatus: ['mcp', 'status'] as const,
+  agentOpModeStatus: ['mcp', 'agentOpModeStatus'] as const,
   hubTime: ['adb', 'hubTime'] as const,
   hubLogs: ['adb', 'hubLogs'] as const,
   query: (q: SessionQuery) => ['index', 'query', q] as const,
@@ -321,6 +322,24 @@ export function useMcpStatus() {
     queryFn: api.mcp.status,
     refetchInterval: 5000,
     refetchOnWindowFocus: true
+  })
+}
+
+/** Worker-thread lease health. Polling observes heartbeats but never calls the robot status/nonce route. */
+export function useAgentOpModeStatus() {
+  return useQuery({
+    queryKey: keys.agentOpModeStatus,
+    queryFn: api.mcp.agentOpModeStatus,
+    refetchInterval: 1000,
+    refetchOnWindowFocus: true
+  })
+}
+
+export function useSetAgentOpModeControlEnabled() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (enabled: boolean) => api.mcp.setAgentOpModeControlEnabled(enabled),
+    onSuccess: (status) => qc.setQueryData(keys.agentOpModeStatus, status)
   })
 }
 

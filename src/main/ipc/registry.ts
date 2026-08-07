@@ -17,6 +17,11 @@ import { getAdbClient, refreshAdbClient } from '../services/adb/runtime'
 import { FtcScoutClient } from '../services/ftcscout/FtcScoutClient'
 import { startArchiveWatcher } from '../services/watcher/Watcher'
 import { getMcpStatus, refreshMcpDiscoveryFile } from '../mcp/server'
+import {
+  getAgentOpModeLeaseStatus,
+  refreshAgentOpModeTarget,
+  setAgentOpModeControlEnabled
+} from '../services/opmode/service'
 import { listTasks, startTask } from '../services/tasks/TaskService'
 import { runImportTask, runNewSessionImportTask, runSingleImportTask } from '../services/import/importTask'
 import {
@@ -59,6 +64,8 @@ const handlers: Handlers = {
 
   // ── MCP ──
   'mcp:status': async () => getMcpStatus(),
+  'mcp:agentOpModeStatus': async () => getAgentOpModeLeaseStatus(),
+  'mcp:setAgentOpModeControlEnabled': async (enabled) => setAgentOpModeControlEnabled(enabled),
 
   // ── settings / archive root ──
   'settings:get': async () => getSettings(),
@@ -84,6 +91,7 @@ const handlers: Handlers = {
     if (!trimmed) throw new Error('Enter an ADB address before saving')
     const next = saveSettings({ adbAddress: trimmed })
     refreshAdbClient()
+    await refreshAgentOpModeTarget()
     return next
   },
   'settings:pickHubLogFolder': async () => {
@@ -97,6 +105,7 @@ const handlers: Handlers = {
   'settings:setHubDataSource': async (source) => {
     const next = saveSettings({ hubDataSource: source })
     refreshAdbClient()
+    await refreshAgentOpModeTarget()
     return next
   },
   'settings:setHubLogFolder': async (path) => {

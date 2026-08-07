@@ -4,8 +4,7 @@ import {
   type Server as HttpServer,
   type ServerResponse
 } from 'node:http'
-import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, copyFileSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import { app } from 'electron'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -16,9 +15,10 @@ import { listHubLogs } from '../services/adb/hublogs'
 import { getAdbClient } from '../services/adb/runtime'
 import { readMetadata } from '../services/archive/SessionStore'
 import { runSingleImportTask } from '../services/import/importTask'
-import { INTERNAL_DIR } from '../services/archive/paths'
 import { LOGVUE_MCP_INSTRUCTIONS, LOGVUE_MCP_TOOLS } from '@shared/mcp/tools'
 import type { McpStatus } from '@shared/types/ipc'
+import { controlOpMode, getRobotStatus } from '../services/opmode/service'
+import { createMcpBearerToken, isAuthorizedMcpRequest } from './auth'
 
 export const MCP_HOST = '0.0.0.0'
 export const MCP_PORT = 47831
@@ -44,21 +44,6 @@ function appDiscoveryPath(): string {
 
 function appBridgePath(): string {
   return join(mcpDataPath(), MCP_BRIDGE_FILE)
-}
-
-function loadStableBearerToken(): string {
-  const candidates = [appDiscoveryPath(), join(app.getPath('userData'), MCP_DISCOVERY_FILE)]
-  const archiveRoot = getSettings().archiveRoot
-  if (archiveRoot) candidates.push(join(archiveRoot, INTERNAL_DIR, MCP_DISCOVERY_FILE))
-  for (const candidate of candidates) {
-    try {
-      const parsed = JSON.parse(readFileSync(candidate, 'utf8')) as { token?: unknown }
-      if (typeof parsed.token === 'string' && parsed.token.length >= 32) return parsed.token
-    } catch {
-      // Try the next location, then generate a new credential below.
-    }
-  }
-  return randomBytes(32).toString('base64url')
 }
 
 export function getMcpStatus(): McpStatus {
@@ -157,12 +142,30 @@ function createLogVueMcpServer(appVersion: string): McpServer {
     }
   )
 
+  server.registerTool(
+    LOGVUE_MCP_TOOLS.getRobotStatus.name,
+    LOGVUE_MCP_TOOLS.getRobotStatus.config,
+    async () => result(await getRobotStatus())
+  )
+
+  server.registerTool(
+    LOGVUE_MCP_TOOLS.controlOpMode.name,
+    LOGVUE_MCP_TOOLS.controlOpMode.config,
+    async ({ nonce, action, opModeName }) => {
+      if (action === 'stop') return result(await controlOpMode({ action }))
+      if (action === 'init') {
+        return result(await controlOpMode({ action, nonce: nonce!, opModeName: opModeName! }))
+      }
+      return result(await controlOpMode({ action, nonce: nonce! }))
+    }
+  )
+
   return server
 }
 
 export async function startMcpServer(appVersion: string): Promise<void> {
   if (httpServer) return
-  bearerToken = loadStableBearerToken()
+  bearerToken = createMcpBearerToken()
   lastRequestAt = null
   installMcpBridge()
 
@@ -171,7 +174,14 @@ export async function startMcpServer(appVersion: string): Promise<void> {
       res.writeHead(404).end()
       return
     }
-    if (!isAuthorizedRequest(req.socket.remoteAddress, req.headers.origin, req.headers.authorization)) {
+    if (
+      !isAuthorizedMcpRequest(
+        req.socket.remoteAddress,
+        req.headers.origin,
+        req.headers.authorization,
+        bearerToken
+      )
+    ) {
       res.writeHead(403).end()
       return
     }
@@ -189,7 +199,7 @@ export async function startMcpServer(appVersion: string): Promise<void> {
     httpServer?.listen(MCP_PORT, MCP_HOST, () => resolveReady())
   })
   writeDiscoveryFile(bearerToken)
-  console.info(`LogVue MCP server listening on port ${MCP_PORT} (loopback + authenticated WSL access)`)
+  console.info(`LogVue MCP server listening on port ${MCP_PORT} (authenticated loopback + WSL access)`)
 }
 
 /** Publish a dependency-bundled bridge at a stable path outside the app install. */
@@ -232,29 +242,6 @@ async function handleMcpRequest(
   }
 }
 
-function isAuthorizedRequest(
-  remoteAddress: string | undefined,
-  originHeader: string | undefined,
-  authorizationHeader: string | undefined
-): boolean {
-  const loopback = remoteAddress === '127.0.0.1' || remoteAddress === '::1' || remoteAddress === '::ffff:127.0.0.1'
-  if (loopback) return !originHeader || isLoopbackHostname(originHeader)
-  if (originHeader || !bearerToken) return false
-  const supplied = authorizationHeader?.match(/^Bearer (.+)$/i)?.[1]
-  if (!supplied) return false
-  const actual = Buffer.from(bearerToken)
-  const candidate = Buffer.from(supplied)
-  return actual.length === candidate.length && timingSafeEqual(actual, candidate)
-}
-
-function isLoopbackHostname(url: string): boolean {
-  try {
-    return ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(url).hostname)
-  } catch {
-    return false
-  }
-}
-
 function writeDiscoveryFile(token: string): void {
   const nextPath = appDiscoveryPath()
   mkdirSync(mcpDataPath(), { recursive: true })
@@ -263,10 +250,15 @@ function writeDiscoveryFile(token: string): void {
     JSON.stringify({ version: 1, port: MCP_PORT, path: MCP_PATH, token, pid: process.pid }, null, 2) + '\n',
     { encoding: 'utf8', mode: 0o600 }
   )
+  try {
+    chmodSync(nextPath, 0o600)
+  } catch {
+    // Windows does not implement POSIX file permissions.
+  }
   discoveryPath = nextPath
 }
 
-/** Recreate the app-level discovery file without changing the stable credential. */
+/** Recreate the app-level discovery file without changing this launch's credential. */
 export function refreshMcpDiscoveryFile(): void {
   if (!httpServer || !bearerToken) return
   if (discoveryPath) rmSync(discoveryPath, { force: true })
