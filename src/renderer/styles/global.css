@@ -263,12 +263,26 @@ input[type="checkbox"] {
 .source-status.ok .dot {
   background: var(--good);
 }
-.mcp-request-age {
-  color: var(--muted);
-  font-weight: 400;
-}
 .mcp-status {
   cursor: pointer;
+  min-width: 7rem;
+  justify-content: center;
+}
+.mcp-status.ready {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.mcp-status.ready .dot {
+  background: var(--accent);
+}
+.mcp-status.active {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--good) 42%, var(--border));
+  background: color-mix(in srgb, var(--good) 8%, transparent);
+}
+.mcp-status.active .dot {
+  background: var(--good);
 }
 .mcp-status:hover {
   background: var(--panel-2);
@@ -1656,6 +1670,12 @@ button.chip.meta.more {
 .settings-section h3 {
   font-size: 0.9rem;
   margin: 0 0 0.35rem;
+}
+.settings-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
 }
 .about-copy {
   display: flex;

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { AppSettings } from '@shared/types/session'
 import type { McpStatus } from '@shared/types/ipc'
@@ -7,11 +8,11 @@ import {
   useConnectAdb,
   useMcpStatus,
   usePickArchiveRoot,
-  useRebuildIndex,
   useSetAgentOpModeControlEnabled
 } from '../api/hooks'
-import { formatRelative } from '../lib/time'
 import { useAppStore } from '../stores/appStore'
+
+const MCP_ACTIVE_WINDOW_MS = 5 * 60 * 1000
 
 interface Props {
   settings: AppSettings
@@ -22,7 +23,6 @@ interface Props {
 
 export default function Toolbar({ settings, onNewTopLevel, onSettings, onMcpSetup }: Props): JSX.Element {
   const pick = usePickArchiveRoot()
-  const rebuild = useRebuildIndex()
   const qc = useQueryClient()
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
@@ -114,18 +114,9 @@ export default function Toolbar({ settings, onNewTopLevel, onSettings, onMcpSetu
       </button>
 
       {view === 'archive' && (
-        <>
-          <button
-            className="ghost sm"
-            onClick={() => rebuild.mutate()}
-            disabled={rebuild.isPending}
-          >
-            {rebuild.isPending ? 'Rescanning…' : 'Rescan'}
-          </button>
-          <button className="sm" onClick={onNewTopLevel}>
-            + New session
-          </button>
-        </>
+        <button className="sm" onClick={onNewTopLevel}>
+          + New session
+        </button>
       )}
       {view === 'device' && (
         <button className="ghost sm" onClick={() => qc.invalidateQueries({ queryKey: ['adb', 'hubLogs'] })}>
@@ -139,30 +130,39 @@ export default function Toolbar({ settings, onNewTopLevel, onSettings, onMcpSetu
 
 function McpBadge({ status, onClick }: { status: McpStatus | undefined; onClick: () => void }): JSX.Element {
   const available = !!status?.running && !!status.discoveryReady && !!status.bridgeReady
+  const lastRequestMs = status?.lastRequestAt ? Date.parse(status.lastRequestAt) : Number.NaN
+  const [, refreshClock] = useState(0)
+
+  useEffect(() => {
+    if (!available || !Number.isFinite(lastRequestMs)) return
+    const remainingMs = lastRequestMs + MCP_ACTIVE_WINDOW_MS - Date.now()
+    if (remainingMs <= 0) return
+    const timer = window.setTimeout(() => refreshClock((tick) => tick + 1), remainingMs)
+    return () => window.clearTimeout(timer)
+  }, [available, lastRequestMs])
+
+  const recentlyUsed =
+    available && Number.isFinite(lastRequestMs) && Date.now() - lastRequestMs < MCP_ACTIVE_WINDOW_MS
   const availabilityLabel = !status
     ? 'MCP checking…'
     : available
-      ? 'MCP available'
+      ? recentlyUsed
+        ? 'MCP active'
+        : 'MCP ready'
       : status.running
         ? 'MCP setup incomplete'
         : 'MCP unavailable'
-  const requestLabel =
-    available && status
-      ? status.lastRequestAt
-        ? `last request ${formatRelative(status.lastRequestAt)}`
-        : 'no requests yet'
-      : null
+  const stateClass = recentlyUsed ? 'active' : available ? 'ready' : 'off'
 
   return (
     <button
       type="button"
-      className={`source-status mcp-status ${available ? 'ok' : 'off'}`}
+      className={`source-status mcp-status ${stateClass}`}
       title="Open MCP setup instructions"
       onClick={onClick}
     >
       <span className="dot" />
       <span>{availabilityLabel}</span>
-      {requestLabel && <span className="mcp-request-age">· {requestLabel}</span>}
     </button>
   )
 }
