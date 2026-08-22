@@ -733,10 +733,6 @@ export default function SimulateWorkspace(): JSX.Element {
             </div>
           </section>
 
-          <div className="sim-background-note">
-            LIVE input is best-effort and never controls simulation pacing. Keep LogVue open while driving;
-            a disconnected controller or stale renderer input becomes neutral automatically.
-          </div>
         </div>
       </div>
     </div>
