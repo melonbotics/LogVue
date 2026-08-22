@@ -373,7 +373,6 @@ export default function SimulateWorkspace(): JSX.Element {
   const opModes = catalog.opModes
   const selectedProgramKey = selectedProgram ? programSelectionKey(selectedProgram) : ''
   const selectedOpMode = opModes.find((program) => programMatches(program, selectedProgram))
-  const plugin = catalog.plugins.find(({ id }) => id === selectedOpMode?.pluginId)
   const scenarios = selectedOpMode
     ? catalog.scenarios.filter(({ pluginId }) => pluginId === selectedOpMode.pluginId)
     : []
@@ -452,11 +451,6 @@ export default function SimulateWorkspace(): JSX.Element {
                       </option>
                     ))}
                   </select>
-                  <span className="sim-field-help">
-                    {selectedOpMode
-                      ? `${plugin?.name ?? selectedOpMode.pluginId} · ${selectedOpMode.type || 'OpMode'} · ${selectedOpMode.id}`
-                      : 'Build or refresh the project to read its catalog.'}
-                  </span>
                 </div>
                 <div className="sim-field">
                   <label htmlFor="sim-scenario">Scenario</label>
@@ -483,13 +477,13 @@ export default function SimulateWorkspace(): JSX.Element {
                         : 'This robot plugin does not declare additional scenarios.')}
                   </span>
                 </div>
-                <div className="sim-field">
+                <div className="sim-field sim-project-actions">
                   <span className="sim-field-label">Project actions</span>
                   <div className="sim-inline-actions">
                     {displayedProject?.buildAvailable && (
                       <button
                         type="button"
-                        className="ghost sm"
+                        className="primary-control"
                         disabled={configLocked || busy !== null}
                         onClick={() => void buildProject()}
                       >
@@ -498,7 +492,7 @@ export default function SimulateWorkspace(): JSX.Element {
                     )}
                     <button
                       type="button"
-                      className="ghost sm"
+                      className="primary-control"
                       disabled={configLocked || busy !== null || !displayedProject}
                       onClick={() => void refreshCatalog()}
                     >

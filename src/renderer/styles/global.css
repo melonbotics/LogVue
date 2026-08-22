@@ -813,6 +813,14 @@ input[type="checkbox"] {
   gap: 7px;
   flex-wrap: wrap;
 }
+.sim-project-actions {
+  grid-column: 1 / -1;
+  align-items: flex-end;
+  text-align: right;
+}
+.sim-project-actions .sim-inline-actions {
+  justify-content: flex-end;
+}
 .sim-inputs {
   display: grid;
   grid-template-columns: 1fr 1fr;
