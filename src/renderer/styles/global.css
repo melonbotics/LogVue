@@ -2450,7 +2450,8 @@ button.chip.meta.more {
 }
 .spinner-import,
 .spinner-ftcscout,
-.spinner-adb {
+.spinner-adb,
+.spinner-simulation {
   border-top-color: var(--accent);
 }
 .spinner-reindex {
@@ -2490,7 +2491,8 @@ button.chip.meta.more {
 }
 .bar-fill-import,
 .bar-fill-ftcscout,
-.bar-fill-adb {
+.bar-fill-adb,
+.bar-fill-simulation {
   background: var(--accent);
 }
 .bar-fill-reindex {

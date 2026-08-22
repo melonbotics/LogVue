@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  buildSimulationProject,
   discoverSimulationProject,
   listSimulationCatalog,
   resolveCommand,
@@ -98,6 +99,25 @@ describe('SpiderKit simulation project manifest', () => {
     expect(() => resolveCommand(root, ['../outside'], 'linux')).toThrowError(
       expect.objectContaining<Partial<SimulationProjectError>>({ code: 'PATH_OUTSIDE_PROJECT' })
     )
+  })
+
+  it('streams complete build output lines while retaining captured output', async () => {
+    const root = project({ buildCommand: { linux: ['./build-tool'] } })
+    const tool = join(root, 'build-tool')
+    writeFileSync(tool, '#!/bin/sh\nprintf "Preparing\\n> Task :RobotSim:installDist\\n"\n')
+    chmodSync(tool, 0o755)
+    const output: Array<{ stream: string; line: string }> = []
+
+    const result = await buildSimulationProject(root, 'linux', {
+      onOutput: (stream, line) => output.push({ stream, line })
+    })
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain(':RobotSim:installDist')
+    expect(output).toEqual([
+      { stream: 'stdout', line: 'Preparing' },
+      { stream: 'stdout', line: '> Task :RobotSim:installDist' }
+    ])
   })
 })
 

@@ -61,6 +61,14 @@ export class TaskHandle {
     this.emit(true)
   }
 
+  /** Update one active item's read-out without flooding the renderer with process output. */
+  itemDetail(id: string, detail: string | null): void {
+    const item = this.task.items.find((i) => i.id === id)
+    if (!item || item.status !== 'active') return
+    item.detail = detail
+    this.emit(false)
+  }
+
   /**
    * Declare the work up front so the stack can show `0 / 12` and a queued file list
    * before the first byte moves. Sizes feed the aggregate byte total.

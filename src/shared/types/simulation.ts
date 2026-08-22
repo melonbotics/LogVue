@@ -122,6 +122,7 @@ export interface SimulationBuildResult {
   stdout: string
   stderr: string
   project: SimulationProject
+  catalog: SimulationCatalog
 }
 
 export interface SimulationStartConfig {

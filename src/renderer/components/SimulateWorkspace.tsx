@@ -247,8 +247,7 @@ export default function SimulateWorkspace(): JSX.Element {
     try {
       const result = await api.simulation.buildProject(projectDirectory)
       setProject(result.project)
-      const discoveredCatalog = await api.simulation.listCatalog(projectDirectory)
-      acceptCatalog(discoveredCatalog)
+      acceptCatalog(result.catalog)
     } catch (error) {
       setLocalError(messageOf(error))
     } finally {

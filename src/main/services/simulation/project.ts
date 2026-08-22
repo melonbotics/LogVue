@@ -21,6 +21,10 @@ const MAX_MANIFEST_BYTES = 64 * 1024
 const MAX_COMMAND_OUTPUT_BYTES = 2 * 1024 * 1024
 const COMMAND_TIMEOUT_MS = 120_000
 
+export interface SimulationBuildHooks {
+  onOutput?: (stream: 'stdout' | 'stderr', line: string) => void
+}
+
 export class SimulationProjectError extends Error {
   constructor(
     readonly code: string,
@@ -94,8 +98,9 @@ export function discoverSimulationProject(
 
 export async function buildSimulationProject(
   projectDirectory: string,
-  platform: SimulationPlatform = simulationPlatform()
-): Promise<SimulationBuildResult> {
+  platform: SimulationPlatform = simulationPlatform(),
+  hooks: SimulationBuildHooks = {}
+): Promise<Omit<SimulationBuildResult, 'catalog'>> {
   const project = discoverSimulationProject(projectDirectory, platform)
   const command = project.manifest.buildCommand?.[platform]
   if (!command) {
@@ -104,7 +109,14 @@ export async function buildSimulationProject(
       `${project.manifest.name} has no ${platform} build command`
     )
   }
-  const result = await runCaptured(project.projectDirectory, command, project.workingDirectory, platform)
+  const result = await runCaptured(
+    project.projectDirectory,
+    command,
+    project.workingDirectory,
+    platform,
+    COMMAND_TIMEOUT_MS,
+    hooks
+  )
   if (result.exitCode !== 0) {
     throw new SimulationProjectError(
       'BUILD_FAILED',
@@ -373,11 +385,13 @@ async function runCaptured(
   command: string[],
   cwd: string,
   platform: SimulationPlatform,
-  timeoutMs = COMMAND_TIMEOUT_MS
+  timeoutMs = COMMAND_TIMEOUT_MS,
+  hooks: SimulationBuildHooks = {}
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const child = spawnCommand(projectDirectory, command, cwd, platform)
   let stdout = ''
   let stderr = ''
+  const lineBuffers = { stdout: '', stderr: '' }
   let settled = false
   child.stdout.setEncoding('utf8')
   child.stderr.setEncoding('utf8')
@@ -395,6 +409,13 @@ async function runCaptured(
       if (settled) return
       if (target === 'stdout') stdout += chunk
       else stderr += chunk
+      lineBuffers[target] += chunk
+      let newline: number
+      while ((newline = lineBuffers[target].indexOf('\n')) >= 0) {
+        const line = lineBuffers[target].slice(0, newline).replace(/\r$/, '')
+        lineBuffers[target] = lineBuffers[target].slice(newline + 1)
+        if (line.trim()) hooks.onOutput?.(target, line)
+      }
       if (Buffer.byteLength(stdout) + Buffer.byteLength(stderr) > MAX_COMMAND_OUTPUT_BYTES) {
         rejectOnce(
           new SimulationProjectError('COMMAND_OUTPUT_TOO_LARGE', 'Command output exceeded 2 MiB')
@@ -417,6 +438,10 @@ async function runCaptured(
       if (settled) return
       settled = true
       clearTimeout(timeout)
+      for (const target of ['stdout', 'stderr'] as const) {
+        const line = lineBuffers[target].replace(/\r$/, '')
+        if (line.trim()) hooks.onOutput?.(target, line)
+      }
       resolveResult({ exitCode: code ?? 1, stdout, stderr })
     })
   })

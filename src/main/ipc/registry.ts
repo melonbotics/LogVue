@@ -94,8 +94,45 @@ const handlers: Handlers = {
   },
   'simulation:discoverProject': async (projectDirectory) =>
     discoverSimulationProject(projectDirectory),
-  'simulation:buildProject': async (projectDirectory) =>
-    buildSimulationProject(projectDirectory),
+  'simulation:buildProject': async (projectDirectory) => {
+    const project = discoverSimulationProject(projectDirectory)
+    const task = startTask({
+      kind: 'simulation',
+      title: `Building ${project.manifest.name}`,
+      subtitle: 'Gradle · robot-local simulator'
+    })
+    task.setItems([
+      { id: 'build', label: 'Build simulator', bytes: null },
+      { id: 'catalog', label: 'Discover catalog', bytes: null }
+    ])
+    task.itemStatus('build', 'active', 'Starting Gradle…')
+    let stage: 'build' | 'catalog' = 'build'
+    try {
+      const result = await buildSimulationProject(projectDirectory, project.platform, {
+        onOutput: (_stream, line) => {
+          const detail = usefulBuildLine(line)
+          if (detail) task.itemDetail('build', detail)
+        }
+      })
+      task.itemStatus('build', 'done', 'complete')
+      stage = 'catalog'
+      task.patch({ title: `Discovering ${project.manifest.name}` })
+      task.itemStatus('catalog', 'active', 'Reading plugins and OpModes…')
+      const catalog = await listSimulationCatalog(projectDirectory, project.platform)
+      task.itemStatus(
+        'catalog',
+        'done',
+        `${catalog.plugins.length} plugins · ${catalog.opModes.length} OpModes`
+      )
+      task.patch({ title: `Built ${project.manifest.name}` })
+      task.succeed(`${catalog.opModes.length} OpModes discovered`)
+      return { ...result, catalog }
+    } catch (error) {
+      task.itemStatus(stage, 'failed', error instanceof Error ? error.message : String(error))
+      task.fail(error)
+      throw error
+    }
+  },
   'simulation:listCatalog': async (projectDirectory) =>
     listSimulationCatalog(projectDirectory),
   'simulation:start': async (config) => simulationService().start(config),
@@ -315,4 +352,12 @@ export function registerIpcHandlers(): void {
       console.error('Rejected simulation gamepad frame:', error)
     }
   })
+}
+
+function usefulBuildLine(value: string): string | null {
+  const line = value
+    .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '')
+    .trim()
+  if (!line) return null
+  return line.length > 300 ? `${line.slice(0, 299)}…` : line
 }
