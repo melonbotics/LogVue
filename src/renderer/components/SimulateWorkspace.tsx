@@ -616,7 +616,6 @@ export default function SimulateWorkspace(): JSX.Element {
             <div className="sim-card-header">
               <div>
                 <h2>Session control</h2>
-                <p>Run is real-time; Step and bounded fast advance execute without wall-clock pacing.</p>
               </div>
               <PhaseBadge phase={phase} pid={status?.pid ?? null} />
             </div>
