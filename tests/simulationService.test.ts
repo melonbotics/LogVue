@@ -68,10 +68,16 @@ class ReplyingStdin extends EventEmitter {
   }
 }
 
-function fakeChild(replyState: 'PAUSED' | 'FAILED' = 'PAUSED') {
+function fakeChild(
+  replyState: 'PAUSED' | 'FAILED' = 'PAUSED',
+  closeOnInputEnd = true
+) {
   const stdout = new FakeReadable()
   const emitter = new EventEmitter()
-  const stdin = new ReplyingStdin(stdout, replyState, () => emitter.emit('close', 0, null))
+  const close = () => emitter.emit('close', 0, null)
+  const stdin = new ReplyingStdin(stdout, replyState, () => {
+    if (closeOnInputEnd) close()
+  })
   const process = Object.assign(emitter, {
     pid: 123,
     stdout,
@@ -85,7 +91,8 @@ function fakeChild(replyState: 'PAUSED' | 'FAILED' = 'PAUSED') {
   })
   return {
     child: process as unknown as ChildProcessWithoutNullStreams,
-    stdin
+    stdin,
+    close
   }
 }
 
@@ -203,6 +210,26 @@ describe('SimulationService', () => {
     )
 
     service.dispose()
+  })
+
+  it('remains stopping with a live PID until the simulator process exits', async () => {
+    const process = fakeChild('PAUSED', false)
+    const service = new SimulationService(() => process.child, () => undefined, 'linux')
+
+    await service.start({
+      projectDirectory: project(),
+      opModeId: 'test.opmode',
+      gamepad1: { kind: 'NONE' },
+      gamepad2: { kind: 'NONE' },
+      startPaused: true
+    })
+
+    const stopPromise = service.stop()
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(service.getStatus()).toMatchObject({ phase: 'stopping', pid: 123 })
+
+    process.close()
+    await expect(stopPromise).resolves.toMatchObject({ phase: 'stopped', pid: null })
   })
 
   it('fail-closes a runner-reported FAILED session and permits a clean restart', async () => {

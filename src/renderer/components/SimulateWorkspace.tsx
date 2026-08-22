@@ -65,7 +65,8 @@ export default function SimulateWorkspace(): JSX.Element {
   const { controllers, lastActivatedIndex, supported: gamepadsSupported } = useBrowserControllers()
 
   const phase = status?.phase ?? 'idle'
-  const sessionActive = ['starting', 'running', 'paused', 'stopping'].includes(phase)
+  const sessionActive = Boolean(status?.pid)
+    || ['starting', 'running', 'paused', 'stopping'].includes(phase)
   const configLocked = sessionActive
 
   const acceptCatalog = useCallback((discovered: SimulationCatalog) => {
@@ -376,7 +377,7 @@ export default function SimulateWorkspace(): JSX.Element {
           <h1>Simulate an OpMode</h1>
           <p>Configure one immutable session, then let sim-cli own pacing and every simulation tick.</p>
         </div>
-        <PhaseBadge phase={phase} />
+        <PhaseBadge phase={phase} pid={status?.pid ?? null} />
       </header>
 
       {displayedError && (
@@ -678,7 +679,7 @@ export default function SimulateWorkspace(): JSX.Element {
                         disabled={busy !== null}
                         onClick={() => void command('stop', api.simulation.stop)}
                       >
-                        Stop
+                        {busy === 'stop' ? 'Stopping…' : 'Stop'}
                       </button>
                     </>
                   )}
@@ -750,11 +751,12 @@ export default function SimulateWorkspace(): JSX.Element {
   )
 }
 
-function PhaseBadge({ phase }: { phase: string }): JSX.Element {
+function PhaseBadge({ phase, pid }: { phase: string; pid: number | null }): JSX.Element {
+  const processState = pid !== null ? ` · PID ${pid}` : phase === 'stopped' ? ' · exited' : ''
   return (
     <div className={`sim-state-badge ${phase}`}>
       <span className="dot" />
-      <span>{phase}</span>
+      <span>{phase}{processState}</span>
     </div>
   )
 }

@@ -21,6 +21,8 @@ import { SpiderKitSimProtocolClient, SpiderKitSimProtocolError } from './protoco
 
 const STATUS_POLL_MS = 250
 const BOUNDED_EXECUTION_TIMEOUT_MS = 5 * 60_000
+const PROCESS_EXIT_GRACE_MS = 2_000
+const PROCESS_KILL_TIMEOUT_MS = 1_000
 const STDERR_TAIL_LINES = 100
 const STDERR_LINE_LIMIT = 4_096
 
@@ -153,7 +155,8 @@ export class SimulationService {
 
   async stop(): Promise<SimulationStatus> {
     const client = this.client
-    if (!client) {
+    const child = this.child
+    if (!client || !child) {
       if (this.phase !== 'error') this.setPhase('stopped')
       return this.getStatus()
     }
@@ -163,8 +166,16 @@ export class SimulationService {
     try {
       const status = await client.request('stop', {}, 2_000)
       this.runner = status
-      this.setPhase('stopped')
       client.closeInput()
+      if (!(await this.waitForProcessExit(child, PROCESS_EXIT_GRACE_MS))) {
+        client.terminate()
+        if (!(await this.waitForProcessExit(child, PROCESS_KILL_TIMEOUT_MS))) {
+          throw new SpiderKitSimProtocolError(
+            'PROCESS_EXIT_TIMEOUT',
+            `SpiderKit Sim process ${child.pid ?? '<unknown>'} did not exit after stop`
+          )
+        }
+      }
       return this.getStatus()
     } catch (error) {
       // EOF is the protocol's independent fail-close boundary if a stop reply is lost.
@@ -345,6 +356,25 @@ export class SimulationService {
       if (this.client === client) client.terminate()
     }, 1_000)
     fallback.unref()
+  }
+
+  private waitForProcessExit(
+    child: ChildProcessWithoutNullStreams,
+    timeoutMs: number
+  ): Promise<boolean> {
+    if (this.child !== child) return Promise.resolve(true)
+    return new Promise((resolve) => {
+      const onClose = (): void => {
+        clearTimeout(timeout)
+        resolve(true)
+      }
+      const timeout = setTimeout(() => {
+        child.off('close', onClose)
+        resolve(this.child !== child)
+      }, timeoutMs)
+      timeout.unref()
+      child.once('close', onClose)
+    })
   }
 
   private handleExit(child: ChildProcessWithoutNullStreams): void {
