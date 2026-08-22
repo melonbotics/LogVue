@@ -92,6 +92,14 @@ const handlers: Handlers = {
     })
     return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
   },
+  'simulation:reportError': async (title, message) => {
+    const task = startTask({
+      kind: 'simulation',
+      title: boundedTaskText(title, 'Simulation error', 120),
+      determinate: false
+    })
+    task.fail(boundedTaskText(message, 'Unknown simulation error', 2_000))
+  },
   'simulation:discoverProject': async (projectDirectory) =>
     discoverSimulationProject(projectDirectory),
   'simulation:buildProject': async (projectDirectory) => {
@@ -360,4 +368,9 @@ function usefulBuildLine(value: string): string | null {
     .trim()
   if (!line) return null
   return line.length > 300 ? `${line.slice(0, 299)}…` : line
+}
+
+function boundedTaskText(value: string, fallback: string, maxLength: number): string {
+  const text = value.trim() || fallback
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text
 }

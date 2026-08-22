@@ -39,6 +39,8 @@ export const api = {
     getStatus: () => window.api.invoke('simulation:getStatus'),
     pickProject: () => window.api.invoke('simulation:pickProject'),
     pickRlog: () => window.api.invoke('simulation:pickRlog'),
+    reportError: (title: string, message: string) =>
+      window.api.invoke('simulation:reportError', title, message),
     discoverProject: (projectDirectory: string) =>
       window.api.invoke('simulation:discoverProject', projectDirectory),
     buildProject: (projectDirectory: string) =>

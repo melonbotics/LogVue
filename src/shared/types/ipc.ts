@@ -96,6 +96,7 @@ export interface IpcApi {
   'simulation:getStatus': () => Promise<SimulationStatus>
   'simulation:pickProject': () => Promise<string | null>
   'simulation:pickRlog': () => Promise<string | null>
+  'simulation:reportError': (title: string, message: string) => Promise<void>
   'simulation:discoverProject': (projectDirectory: string) => Promise<SimulationProject>
   'simulation:buildProject': (projectDirectory: string) => Promise<SimulationBuildResult>
   'simulation:listCatalog': (projectDirectory: string) => Promise<SimulationCatalog>

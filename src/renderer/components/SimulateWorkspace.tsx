@@ -59,7 +59,8 @@ export default function SimulateWorkspace(): JSX.Element {
     () => globalThis.localStorage?.getItem('logvue.sim.rlogPort') ?? DEFAULT_RLOG_PORT
   )
   const [busy, setBusy] = useState<string | null>(null)
-  const [localError, setLocalError] = useState<string | null>(null)
+  const lastReportedError = useRef<{ message: string; at: number } | null>(null)
+  const reportedStatusError = useRef<string | null>(null)
   const hydratedPid = useRef<number | null>(null)
   const catalogHydratedPid = useRef<number | null>(null)
   const { controllers, lastActivatedIndex, supported: gamepadsSupported } = useBrowserControllers()
@@ -68,6 +69,17 @@ export default function SimulateWorkspace(): JSX.Element {
   const sessionActive = Boolean(status?.pid)
     || ['starting', 'running', 'paused', 'stopping'].includes(phase)
   const configLocked = sessionActive
+
+  const reportError = useCallback((title: string, error: unknown): void => {
+    const message = messageOf(error)
+    const now = Date.now()
+    if (
+      lastReportedError.current?.message === message
+      && now - lastReportedError.current.at < 1_000
+    ) return
+    lastReportedError.current = { message, at: now }
+    void api.simulation.reportError(title, message).catch(() => undefined)
+  }, [])
 
   const acceptCatalog = useCallback((discovered: SimulationCatalog) => {
     setCatalog(discovered)
@@ -78,7 +90,6 @@ export default function SimulateWorkspace(): JSX.Element {
   const loadProject = useCallback(async (directory: string, refreshCatalog = true) => {
     if (!directory) return
     setBusy('discover')
-    setLocalError(null)
     try {
       const discovered = await api.simulation.discoverProject(directory)
       setProject(discovered)
@@ -92,7 +103,8 @@ export default function SimulateWorkspace(): JSX.Element {
           setCatalog(EMPTY_CATALOG)
           setSelectedProgram(null)
           setScenarioId('')
-          setLocalError(
+          reportError(
+            'Catalog unavailable',
             discovered.buildAvailable
               ? `Catalog unavailable. Build the robot project, then refresh. ${messageOf(error)}`
               : messageOf(error)
@@ -104,24 +116,24 @@ export default function SimulateWorkspace(): JSX.Element {
       setCatalog(EMPTY_CATALOG)
       setSelectedProgram(null)
       setScenarioId('')
-      setLocalError(messageOf(error))
+      reportError('Could not load simulation project', error)
     } finally {
       setBusy(null)
     }
-  }, [acceptCatalog])
+  }, [acceptCatalog, reportError])
 
   useEffect(() => {
     let alive = true
     api.simulation
       .getStatus()
       .then((next) => alive && setStatus(next))
-      .catch((error) => alive && setLocalError(messageOf(error)))
+      .catch((error) => alive && reportError('Could not read simulation status', error))
     const unsubscribe = api.simulation.onStatus((next) => setStatus(next))
     return () => {
       alive = false
       unsubscribe()
     }
-  }, [])
+  }, [reportError])
 
   useEffect(() => {
     if (!projectDirectory || project || sessionActive) return
@@ -175,11 +187,22 @@ export default function SimulateWorkspace(): JSX.Element {
         setCatalog(discovered)
         setSelectedProgram((current) => reconcileProgramSelection(discovered.opModes, current))
       })
-      .catch((error) => alive && setLocalError(messageOf(error)))
+      .catch((error) => alive && reportError('Could not read OpMode catalog', error))
     return () => {
       alive = false
     }
-  }, [catalog.opModes.length, status?.pid, status?.project])
+  }, [catalog.opModes.length, reportError, status?.pid, status?.project])
+
+  useEffect(() => {
+    if (!status?.lastError) {
+      reportedStatusError.current = null
+      return
+    }
+    const key = `${status.lastError.code}:${status.lastError.message}`
+    if (reportedStatusError.current === key) return
+    reportedStatusError.current = key
+    reportError('Simulation failed', status.lastError.message)
+  }, [reportError, status?.lastError])
 
   useEffect(() => {
     if (validRlogPort(rlogPort)) {
@@ -230,12 +253,11 @@ export default function SimulateWorkspace(): JSX.Element {
 
   const chooseProject = async (): Promise<void> => {
     setBusy('pick-project')
-    setLocalError(null)
     try {
       const selected = await api.simulation.pickProject()
       if (selected) await loadProject(selected)
     } catch (error) {
-      setLocalError(messageOf(error))
+      reportError('Could not choose simulation project', error)
     } finally {
       setBusy(null)
     }
@@ -244,13 +266,12 @@ export default function SimulateWorkspace(): JSX.Element {
   const buildProject = async (): Promise<void> => {
     if (!projectDirectory) return
     setBusy('build')
-    setLocalError(null)
     try {
       const result = await api.simulation.buildProject(projectDirectory)
       setProject(result.project)
       acceptCatalog(result.catalog)
-    } catch (error) {
-      setLocalError(messageOf(error))
+    } catch {
+      // The main process owns the build task and reports its failure there.
     } finally {
       setBusy(null)
     }
@@ -259,33 +280,31 @@ export default function SimulateWorkspace(): JSX.Element {
   const refreshCatalog = async (): Promise<void> => {
     if (!projectDirectory) return
     setBusy('refresh')
-    setLocalError(null)
     try {
       const discoveredCatalog = await api.simulation.listCatalog(projectDirectory)
       acceptCatalog(discoveredCatalog)
     } catch (error) {
-      setLocalError(messageOf(error))
+      reportError('Could not refresh OpMode catalog', error)
     } finally {
       setBusy(null)
     }
   }
 
   const chooseRlog = async (slot: Slot): Promise<void> => {
-    setLocalError(null)
     try {
       const path = await api.simulation.pickRlog()
       if (!path) return
       if (slot === 1) setGamepad1Source({ kind: 'RLOG', path })
       else setGamepad2Source({ kind: 'RLOG', path })
     } catch (error) {
-      setLocalError(messageOf(error))
+      reportError('Could not choose RLOG input', error)
     }
   }
 
   const startSession = async (): Promise<void> => {
     const requestedRateHz = Number(rateHz)
     if (!Number.isFinite(requestedRateHz) || requestedRateHz < 1 || requestedRateHz > 1000) {
-      setLocalError('Update rate must be from 1 to 1000 Hz.')
+      reportError('Invalid simulation setup', 'Update rate must be from 1 to 1000 Hz.')
       return
     }
     const selected = catalog.opModes.find((program) => programMatches(program, selectedProgram))
@@ -300,12 +319,11 @@ export default function SimulateWorkspace(): JSX.Element {
       rlogPort
     })
     if (validationError) {
-      setLocalError(validationError)
+      reportError('Invalid simulation setup', validationError)
       return
     }
     if (!project || !selected) return
     setBusy('start')
-    setLocalError(null)
     try {
       setStatus(
         await api.simulation.start({
@@ -322,7 +340,7 @@ export default function SimulateWorkspace(): JSX.Element {
         })
       )
     } catch (error) {
-      setLocalError(messageOf(error))
+      reportError('Could not start simulation', error)
     } finally {
       setBusy(null)
     }
@@ -333,11 +351,10 @@ export default function SimulateWorkspace(): JSX.Element {
     action: () => Promise<SimulationStatus>
   ): Promise<void> => {
     setBusy(name)
-    setLocalError(null)
     try {
       setStatus(await action())
     } catch (error) {
-      setLocalError(messageOf(error))
+      reportError(`Simulation ${name} failed`, error)
     } finally {
       setBusy(null)
     }
@@ -346,14 +363,13 @@ export default function SimulateWorkspace(): JSX.Element {
   const advanceFast = async (): Promise<void> => {
     const seconds = Number(fastDuration)
     if (!Number.isFinite(seconds) || seconds <= 0) {
-      setLocalError('Fast advance duration must be finite and positive.')
+      reportError('Invalid fast advance', 'Fast advance duration must be finite and positive.')
       return
     }
     await command('advance', () => api.simulation.advance(seconds))
   }
 
   const displayedProject = status?.project ?? project
-  const displayedError = localError ?? status?.lastError?.message ?? null
   const opModes = catalog.opModes
   const selectedProgramKey = selectedProgram ? programSelectionKey(selectedProgram) : ''
   const selectedOpMode = opModes.find((program) => programMatches(program, selectedProgram))
@@ -371,12 +387,6 @@ export default function SimulateWorkspace(): JSX.Element {
 
   return (
     <div className="simulate-workspace">
-      {displayedError && (
-        <div className="sim-error" role="alert">
-          {displayedError}
-        </div>
-      )}
-
       <div className="sim-grid">
         <div className="sim-column">
           <section className="sim-card">

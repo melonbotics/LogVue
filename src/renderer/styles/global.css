@@ -969,15 +969,6 @@ input[type="checkbox"] {
 .sim-metric-value.warn {
   color: var(--warn);
 }
-.sim-error {
-  padding: 11px 13px;
-  border: 1px solid color-mix(in srgb, var(--red) 45%, var(--border));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--red) 8%, transparent);
-  color: #ff9aa7;
-  font-size: 0.74rem;
-  line-height: 1.45;
-}
 .sim-empty-runtime {
   padding: 6px 0;
   color: var(--muted);
