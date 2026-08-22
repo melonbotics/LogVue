@@ -106,6 +106,10 @@ export interface IpcApi {
   'simulation:resume': () => Promise<SimulationStatus>
   'simulation:step': (count?: number) => Promise<SimulationStatus>
   'simulation:advance': (durationSeconds: number) => Promise<SimulationStatus>
+  'simulation:runUntil': (
+    config: SimulationStartConfig | null,
+    targetTimeSeconds: number
+  ) => Promise<SimulationStatus>
   'simulation:stop': () => Promise<SimulationStatus>
 
   // ── MCP ────────────────────────────────────────────────────

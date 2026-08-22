@@ -58,9 +58,11 @@ code. LogVue itself may be running from `npm run dev`; the generated distributio
 selected robot repository, not to the LogVue installation.
 
 Continuous Run is always real-time, which suits a human driving with a LIVE gamepad. For agent
-tests, RLOG-driven sessions, and batch log generation, use **Init**, **Start**, then **Pause** and
-request an explicit duration with **Run fast**. SpiderKit executes exactly that many fixed-dt ticks
-without wall-clock pacing and returns only after the corresponding RLOG frames are complete.
+tests, RLOG-driven sessions, and batch log generation, set an absolute simulation timestamp and use
+**Run fast** directly. LogVue initializes a fresh worker when needed; SpiderKit crosses the START
+edge, executes the exact fixed-dt ticks without wall-clock pacing, and returns paused only after the
+corresponding RLOG frames are complete. **Run fast** can then continue that paused worker to a later
+timestamp.
 
 ## Development
 

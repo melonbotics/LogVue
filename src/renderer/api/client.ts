@@ -55,6 +55,10 @@ export const api = {
     step: (count = 1) => window.api.invoke('simulation:step', count),
     advance: (durationSeconds: number) =>
       window.api.invoke('simulation:advance', durationSeconds),
+    runUntil: (
+      config: import('@shared/types/simulation').SimulationStartConfig | null,
+      targetTimeSeconds: number
+    ) => window.api.invoke('simulation:runUntil', config, targetTimeSeconds),
     stop: () => window.api.invoke('simulation:stop'),
     onStatus: (handler: Parameters<typeof window.api.onSimulationStatus>[0]) =>
       window.api.onSimulationStatus(handler),

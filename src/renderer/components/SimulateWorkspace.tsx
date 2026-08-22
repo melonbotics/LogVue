@@ -5,6 +5,7 @@ import type {
   SimulationGamepadSource,
   SimulationProject,
   SimulationRunnerStatus,
+  SimulationStartConfig,
   SimulationStatus
 } from '@shared/types/simulation'
 import { api } from '../api/client'
@@ -48,8 +49,8 @@ export default function SimulateWorkspace(): JSX.Element {
   const [controller2, setController2] = useState<number | null>(() =>
     parseStoredControllerIndex(globalThis.localStorage?.getItem(CONTROLLER_2_STORAGE_KEY) ?? null)
   )
-  const [fastDuration, setFastDuration] = useState(
-    () => globalThis.localStorage?.getItem('logvue.sim.fastDuration') ?? '1.0'
+  const [fastTarget, setFastTarget] = useState(
+    () => globalThis.localStorage?.getItem('logvue.sim.fastTarget') ?? '1.0'
   )
   const [rateHz, setRateHz] = useState(
     () => globalThis.localStorage?.getItem('logvue.sim.rateHz') ?? String(DEFAULT_RATE_HZ)
@@ -159,8 +160,8 @@ export default function SimulateWorkspace(): JSX.Element {
   }, [status])
 
   useEffect(() => {
-    globalThis.localStorage?.setItem('logvue.sim.fastDuration', fastDuration)
-  }, [fastDuration])
+    globalThis.localStorage?.setItem('logvue.sim.fastTarget', fastTarget)
+  }, [fastTarget])
 
   useEffect(() => {
     const value = Number(rateHz)
@@ -299,11 +300,11 @@ export default function SimulateWorkspace(): JSX.Element {
     }
   }
 
-  const initializeSession = async (): Promise<void> => {
+  const configuredSession = (): SimulationStartConfig | null => {
     const requestedRateHz = Number(rateHz)
     if (!Number.isFinite(requestedRateHz) || requestedRateHz < 1 || requestedRateHz > 1000) {
       reportError('Invalid simulation setup', 'Update rate must be from 1 to 1000 Hz.')
-      return
+      return null
     }
     const selected = catalog.opModes.find((program) => programMatches(program, selectedProgram))
     const validationError = validateSetup({
@@ -318,24 +319,28 @@ export default function SimulateWorkspace(): JSX.Element {
     })
     if (validationError) {
       reportError('Invalid simulation setup', validationError)
-      return
+      return null
     }
-    if (!project || !selected) return
+    if (!project || !selected) return null
+    return {
+      projectDirectory: project.projectDirectory,
+      opModeId: selected.id,
+      pluginId: selected.pluginId,
+      scenarioId: scenarioId || undefined,
+      gamepad1: gamepad1Source,
+      gamepad2: gamepad2Source,
+      rateHz: requestedRateHz,
+      staleMs: DEFAULT_STALE_MS,
+      rlogPort: Number(rlogPort)
+    }
+  }
+
+  const initializeSession = async (): Promise<void> => {
+    const config = configuredSession()
+    if (!config) return
     setBusy('init')
     try {
-      setStatus(
-        await api.simulation.init({
-          projectDirectory: project.projectDirectory,
-          opModeId: selected.id,
-          pluginId: selected.pluginId,
-          scenarioId: scenarioId || undefined,
-          gamepad1: gamepad1Source,
-          gamepad2: gamepad2Source,
-          rateHz: requestedRateHz,
-          staleMs: DEFAULT_STALE_MS,
-          rlogPort: Number(rlogPort)
-        })
-      )
+      setStatus(await api.simulation.init(config))
     } catch (error) {
       reportError('Could not initialize simulation', error)
     } finally {
@@ -357,13 +362,15 @@ export default function SimulateWorkspace(): JSX.Element {
     }
   }
 
-  const advanceFast = async (): Promise<void> => {
-    const seconds = Number(fastDuration)
-    if (!Number.isFinite(seconds) || seconds <= 0) {
-      reportError('Invalid fast advance', 'Fast advance duration must be finite and positive.')
+  const runFast = async (): Promise<void> => {
+    const targetTimeSeconds = Number(fastTarget)
+    if (!Number.isFinite(targetTimeSeconds) || targetTimeSeconds <= 0) {
+      reportError('Invalid fast run', 'Target simulation time must be finite and positive.')
       return
     }
-    await command('advance', () => api.simulation.advance(seconds))
+    const config = sessionActive ? null : configuredSession()
+    if (!sessionActive && !config) return
+    await command('run fast', () => api.simulation.runUntil(config, targetTimeSeconds))
   }
 
   const displayedProject = status?.project ?? project
@@ -380,6 +387,7 @@ export default function SimulateWorkspace(): JSX.Element {
     ?? 1 / (Number.isFinite(selectedRateHz) && selectedRateHz > 0
       ? selectedRateHz
       : DEFAULT_RATE_HZ)
+  const currentTimeSeconds = runner?.timeSeconds ?? 0
   const primaryControlLabel = busy === 'init'
     ? 'Initializing…'
     : busy === 'start'
@@ -579,20 +587,17 @@ export default function SimulateWorkspace(): JSX.Element {
               </div>
               <div className="sim-session-options">
                 <div className="sim-field">
-                  <label htmlFor="sim-fast-duration">Fast advance duration</label>
+                  <label htmlFor="sim-fast-target">Run until (s)</label>
                   <input
-                    id="sim-fast-duration"
+                    id="sim-fast-target"
                     type="number"
-                    min={effectiveDtSeconds}
-                    max={effectiveDtSeconds * 10_000}
+                    min={currentTimeSeconds + effectiveDtSeconds}
+                    max={currentTimeSeconds + effectiveDtSeconds * 10_000}
                     step={effectiveDtSeconds}
-                    value={fastDuration}
+                    value={fastTarget}
                     disabled={busy !== null}
-                    onChange={(event) => setFastDuration(event.target.value)}
+                    onChange={(event) => setFastTarget(event.target.value)}
                   />
-                  <span className="sim-field-help">
-                    Seconds to execute without wall-clock pacing while paused.
-                  </span>
                 </div>
                 <div className="sim-field">
                   <label htmlFor="sim-rlog-port">RLOG listen port</label>
@@ -659,10 +664,10 @@ export default function SimulateWorkspace(): JSX.Element {
                   <button
                     type="button"
                     className="ghost sm sim-fast-control"
-                    disabled={busy !== null || phase !== 'paused'}
-                    onClick={() => void advanceFast()}
+                    disabled={busy !== null || (sessionActive && phase !== 'paused')}
+                    onClick={() => void runFast()}
                   >
-                    {busy === 'advance' ? 'Advancing…' : 'Run fast'}
+                    {busy === 'run fast' ? 'Running…' : 'Run fast'}
                   </button>
                 </div>
               </div>

@@ -24,6 +24,8 @@ class FakeReadable extends EventEmitter {
 class ReplyingStdin extends EventEmitter {
   destroyed = false
   readonly requests: Record<string, any>[] = []
+  private timeSeconds = 0
+  private tick = 0
 
   constructor(
     private readonly stdout: FakeReadable,
@@ -41,6 +43,12 @@ class ReplyingStdin extends EventEmitter {
       if (request.command === 'start' && this.replyState === 'INITIALIZED') this.replyState = 'RUNNING'
       if (request.command === 'pause' && this.replyState === 'RUNNING') this.replyState = 'PAUSED'
       if (request.command === 'resume' && this.replyState === 'PAUSED') this.replyState = 'RUNNING'
+      if (request.command === 'advance' && ['INITIALIZED', 'PAUSED'].includes(this.replyState)) {
+        this.replyState = 'PAUSED'
+        const durationSeconds = Number(request.durationSeconds)
+        this.timeSeconds += durationSeconds
+        this.tick += Math.round(durationSeconds / 0.02)
+      }
       if (request.command === 'stop') this.replyState = 'STOPPED'
       const state = this.replyState
       this.stdout.emit(
@@ -54,8 +62,8 @@ class ReplyingStdin extends EventEmitter {
           status: {
             state,
             id: 'test.opmode',
-            tick: 0,
-            timeSeconds: 0,
+            tick: this.tick,
+            timeSeconds: this.timeSeconds,
             dtSeconds: 0.02,
             rateHz: 50,
             ...(state === 'FAILED' ? { failureMessage: 'Robot model exploded' } : {})
@@ -237,6 +245,30 @@ describe('SimulationService', () => {
     await expect(stopPromise).resolves.toMatchObject({ phase: 'stopped', pid: null })
   })
 
+  it('initializes and executes to an absolute simulation time in one service call', async () => {
+    const process = fakeChild()
+    const service = new SimulationService(() => process.child, () => undefined, 'linux')
+
+    const status = await service.runUntil({
+      projectDirectory: project(),
+      opModeId: 'test.opmode',
+      gamepad1: { kind: 'NONE' },
+      gamepad2: { kind: 'NONE' },
+      rateHz: 50
+    }, 2.0)
+
+    expect(status).toMatchObject({
+      phase: 'paused',
+      runner: { state: 'PAUSED', tick: 100, timeSeconds: 2.0 }
+    })
+    expect(process.stdin.requests).toContainEqual(
+      expect.objectContaining({ command: 'advance', durationSeconds: 2.0 })
+    )
+    expect(process.stdin.requests.some(({ command }) => command === 'start')).toBe(false)
+    expect(process.stdin.requests.some(({ command }) => command === 'pause')).toBe(false)
+    service.dispose()
+  })
+
   it('fail-closes a runner-reported FAILED session and permits a clean restart', async () => {
     const failed = fakeChild('FAILED')
     const restarted = fakeChild('INITIALIZED')
@@ -278,20 +310,18 @@ it.skipIf(!process.env.LOGVUE_SPIDERKIT_PROJECT)(
     const service = new SimulationService(undefined, () => undefined, 'linux')
 
     try {
-      await expect(
-        service.initialize({
+      const before = performance.now()
+      const advanced = await service.runUntil(
+        {
           projectDirectory,
           opModeId: opMode.id,
           pluginId: opMode.pluginId,
           gamepad1: { kind: 'NONE' },
           gamepad2: { kind: 'NONE' },
           rlogPort: 0
-        })
-      ).resolves.toMatchObject({ phase: 'initialized' })
-      await expect(service.start()).resolves.toMatchObject({ phase: 'running' })
-      await expect(service.pause()).resolves.toMatchObject({ phase: 'paused' })
-      const before = performance.now()
-      const advanced = await service.advance(1.0)
+        },
+        1.0
+      )
       expect(advanced).toMatchObject({
         phase: 'paused',
         runner: { tick: 50 }

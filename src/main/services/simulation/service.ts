@@ -20,6 +20,7 @@ import {
 import { SpiderKitSimProtocolClient, SpiderKitSimProtocolError } from './protocol'
 
 const STATUS_POLL_MS = 250
+const DEFAULT_RATE_HZ = 50
 const BOUNDED_EXECUTION_TIMEOUT_MS = 5 * 60_000
 const PROCESS_EXIT_GRACE_MS = 2_000
 const PROCESS_KILL_TIMEOUT_MS = 1_000
@@ -157,6 +158,53 @@ export class SimulationService {
       )
     }
     return this.lifecycle('advance', { durationSeconds }, BOUNDED_EXECUTION_TIMEOUT_MS)
+  }
+
+  /**
+   * Executes to one absolute simulation timestamp without wall-clock pacing.
+   * An idle call owns process launch and initialization; SpiderKit's advance command owns the
+   * START edge atomically and returns the worker in PAUSED.
+   */
+  async runUntil(
+    input: SimulationStartConfig | null,
+    targetTimeSeconds: number
+  ): Promise<SimulationStatus> {
+    if (!Number.isFinite(targetTimeSeconds) || targetTimeSeconds <= 0) {
+      throw new SpiderKitSimProtocolError(
+        'INVALID_TARGET_TIME',
+        'Target simulation time must be finite and positive'
+      )
+    }
+    if (!this.child) {
+      if (!input) {
+        throw new SpiderKitSimProtocolError(
+          'SESSION_CONFIG_REQUIRED',
+          'A session configuration is required when no simulation is active'
+        )
+      }
+      validateTargetDuration(targetTimeSeconds, 0, 1 / (input.rateHz ?? DEFAULT_RATE_HZ))
+      await this.initialize(input)
+    } else if (input) {
+      throw new SpiderKitSimProtocolError(
+        'SESSION_ACTIVE',
+        'A session configuration cannot replace an active simulation'
+      )
+    }
+
+    if (!['initialized', 'paused'].includes(this.phase) || !this.runner) {
+      throw new SpiderKitSimProtocolError(
+        'NOT_BOUNDED_RUN_READY',
+        'Run until is available before initialization or while paused'
+      )
+    }
+    const durationSeconds = targetTimeSeconds - this.runner.timeSeconds
+    const tolerance = validateTargetDuration(
+      targetTimeSeconds,
+      this.runner.timeSeconds,
+      this.runner.dtSeconds
+    )
+    if (Math.abs(durationSeconds) <= tolerance) return this.getStatus()
+    return this.advance(durationSeconds)
   }
 
   async stop(): Promise<SimulationStatus> {
@@ -499,6 +547,36 @@ function serveArgs(config: SimulationStartConfig): string[] {
   if (config.rlogPort !== undefined) args.push('--rlog-port', String(config.rlogPort))
   args.push('--init-only')
   return args
+}
+
+function validateTargetDuration(
+  targetTimeSeconds: number,
+  currentTimeSeconds: number,
+  dtSeconds: number
+): number {
+  const durationSeconds = targetTimeSeconds - currentTimeSeconds
+  const tolerance = Math.max(1e-12, dtSeconds * 1e-9)
+  if (durationSeconds < -tolerance) {
+    throw new SpiderKitSimProtocolError(
+      'TARGET_TIME_ELAPSED',
+      `Target time ${targetTimeSeconds} s is before current simulation time ${currentTimeSeconds} s`
+    )
+  }
+  if (Math.abs(durationSeconds) <= tolerance) return tolerance
+  const ticks = Math.round(durationSeconds / dtSeconds)
+  if (ticks < 1 || ticks > 10_000) {
+    throw new SpiderKitSimProtocolError(
+      'INVALID_TARGET_TIME',
+      'Target time must be between 1 and 10000 fixed ticks after the current simulation time'
+    )
+  }
+  if (Math.abs(ticks * dtSeconds - durationSeconds) > tolerance) {
+    throw new SpiderKitSimProtocolError(
+      'INVALID_TARGET_TIME',
+      `Target time must align to the fixed timestep ${dtSeconds}`
+    )
+  }
+  return tolerance
 }
 
 function sourceArg(source: SimulationStartConfig['gamepad1']): string {

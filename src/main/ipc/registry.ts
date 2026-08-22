@@ -149,6 +149,8 @@ const handlers: Handlers = {
   'simulation:resume': async () => simulationService().resume(),
   'simulation:step': async (count) => simulationService().step(count),
   'simulation:advance': async (durationSeconds) => simulationService().advance(durationSeconds),
+  'simulation:runUntil': async (config, targetTimeSeconds) =>
+    simulationService().runUntil(config, targetTimeSeconds),
   'simulation:stop': async () => simulationService().stop(),
 
   // ── MCP ──
