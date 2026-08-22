@@ -73,7 +73,7 @@ export default function HubLogTable(): JSX.Element {
   }
   if (!logs || logs.length === 0) {
     return <Notice title="No .rlog files found">
-      {sourceIsFolder ? 'No .rlog files were found in the selected folder.' : 'Nothing under the hub’s PsiKit log folder yet.'}
+      {sourceIsFolder ? 'No .rlog files were found in the selected folder.' : 'Nothing under the hub’s SpiderKit log folder yet.'}
     </Notice>
   }
 

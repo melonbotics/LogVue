@@ -412,7 +412,7 @@ empty `Q4_Blue_B2/` is already a valid, importable session before a single log e
       access: surface them and let the user retry, don't crash or auto-restart adb.
 - Device detection: parse `adb devices`; poll on an interval **and** offer manual
   refresh; emit `adb:changed` on transitions.
-- Discovery: try `find /sdcard/FIRST/PsiKit -name "*.rlog" -type f`; **fall back** to
+- Discovery: try `find /sdcard/FIRST/SpiderKit -name "*.rlog" -type f`; **fall back** to
   `ls -l` parsing when `find` is unavailable (Android shells vary — spec §7.2).
   All parsing isolated in `parseLs.ts` + `rlogFilename.ts` so it's unit-testable
   against captured real-device output.
@@ -458,7 +458,7 @@ reindex the single touched session and emit `archive:changed`, so filters and ev
 renderer stay in step without a full rescan. Session deletion is the exception: its
 command performs a full rebuild because an entire descendant subtree may vanish.
 
-`file_metadata` holds the key/value map PsiKit's `Logger.recordMetadata()` embeds in
+`file_metadata` holds the key/value map SpiderKit's `Logger.recordMetadata()` embeds in
 each `.rlog` (`/Metadata/*` string records in the first log cycle — e.g. GitSHA,
 GitBranch, OpMode name). `rlog/rlogMetadata.ts` decodes it from the *head* of the
 file only (128 KiB cap), at import (`reindexSession`) and full rebuild; the log file

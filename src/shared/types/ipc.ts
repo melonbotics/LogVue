@@ -31,6 +31,15 @@ import type {
 import type { Task } from './tasks'
 import type { AgentOpModeLeaseStatus } from './opmode'
 import type {
+  SimulationBuildResult,
+  SimulationCatalog,
+  SimulationGamepadFrame,
+  SimulationProject,
+  SimulationStatus,
+  SimulationStderrEvent,
+  SimulationStartConfig
+} from './simulation'
+import type {
   FtcScoutEventSearchRequest,
   FtcScoutEventSearchResult,
   FtcScoutSyncRequest,
@@ -66,6 +75,13 @@ export interface ArchiveChangedEvent {
 export interface IpcEvents {
   'archive:changed': ArchiveChangedEvent
   'tasks:update': Task
+  'simulation:status': SimulationStatus
+  'simulation:stderr': SimulationStderrEvent
+}
+
+/** High-rate renderer-to-main messages. These deliberately do not use invoke/reply IPC. */
+export interface IpcSends {
+  'simulation:gamepads': SimulationGamepadFrame
 }
 
 export interface IpcApi {
@@ -75,6 +91,20 @@ export interface IpcApi {
   'app:getInfo': () => Promise<AppInfo>
   /** Open the bundled third-party license notices in the system viewer. */
   'app:openThirdPartyNotices': () => Promise<void>
+
+  // ── RobotSim (standalone CLI process) ─────────────────────
+  'simulation:getStatus': () => Promise<SimulationStatus>
+  'simulation:pickProject': () => Promise<string | null>
+  'simulation:pickRlog': () => Promise<string | null>
+  'simulation:discoverProject': (projectDirectory: string) => Promise<SimulationProject>
+  'simulation:buildProject': (projectDirectory: string) => Promise<SimulationBuildResult>
+  'simulation:listCatalog': (projectDirectory: string) => Promise<SimulationCatalog>
+  'simulation:start': (config: SimulationStartConfig) => Promise<SimulationStatus>
+  'simulation:pause': () => Promise<SimulationStatus>
+  'simulation:resume': () => Promise<SimulationStatus>
+  'simulation:step': (count?: number) => Promise<SimulationStatus>
+  'simulation:advance': (durationSeconds: number) => Promise<SimulationStatus>
+  'simulation:stop': () => Promise<SimulationStatus>
 
   // ── MCP ────────────────────────────────────────────────────
   /** Whether the MCP endpoint, discovery file, and installed bridge are available. */

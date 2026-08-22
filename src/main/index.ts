@@ -1,6 +1,7 @@
 import { join } from 'path'
 import { app, BrowserWindow, shell } from 'electron'
 import { registerIpcHandlers } from './ipc/registry'
+import { emitIpcEvent } from './ipc/events'
 import { getSettings } from './config/settings'
 import { closeIndex, ensureIndexBuilt } from './services/index/indexService'
 import { startArchiveWatcher, stopArchiveWatcher } from './services/watcher/Watcher'
@@ -10,6 +11,7 @@ import {
   startAgentOpModeService,
   stopAgentOpModeService
 } from './services/opmode/service'
+import { getSimulationService } from './services/simulation/service'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -27,7 +29,10 @@ function createWindow(): void {
       // OS only through the allow-listed preload bridge.
       sandbox: true,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      // Chromium may visibility-throttle Gamepad API polling otherwise. The
+      // simulator still owns pacing; this only keeps its latest-value input fresh.
+      backgroundThrottling: false
     }
   })
 
@@ -38,6 +43,7 @@ function createWindow(): void {
     void setAgentOpModeControlEnabled(false).catch((error) => {
       console.error(`Failed to release the agent OpMode lease after ${reason}:`, error)
     })
+    getSimulationService(emitIpcEvent).failClose(reason)
   }
 
   // The operator gate must not remain armed without a working, visible LogVue UI.
@@ -106,6 +112,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('will-quit', () => {
+  getSimulationService(emitIpcEvent).dispose()
   void stopMcpServer()
   void stopAgentOpModeService()
   stopArchiveWatcher()

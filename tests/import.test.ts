@@ -39,7 +39,7 @@ describe('guessFileKind', () => {
 
 describe('findDuplicates', () => {
   const ref: HubLogRef = {
-    remotePath: '/sdcard/FIRST/PsiKit/A_log_1.rlog',
+    remotePath: '/sdcard/FIRST/SpiderKit/A_log_1.rlog',
     filename: 'A_log_1.rlog',
     fileSize: 1024
   }
@@ -101,7 +101,7 @@ describe('importToSession', () => {
   afterEach(() => rmSync(root, { recursive: true, force: true }))
 
   const ref = (filename: string): HubLogRef => ({
-    remotePath: `/sdcard/FIRST/PsiKit/${filename}`,
+    remotePath: `/sdcard/FIRST/SpiderKit/${filename}`,
     filename,
     fileSize: 3
   })

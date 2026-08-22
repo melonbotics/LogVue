@@ -23,6 +23,13 @@ import {
   setAgentOpModeControlEnabled
 } from '../services/opmode/service'
 import { listTasks, startTask } from '../services/tasks/TaskService'
+import {
+  buildSimulationProject,
+  discoverSimulationProject,
+  listSimulationCatalog
+} from '../services/simulation/project'
+import { getSimulationService } from '../services/simulation/service'
+import { emitIpcEvent } from './events'
 import { runImportTask, runNewSessionImportTask, runSingleImportTask } from '../services/import/importTask'
 import {
   createSessionCommand,
@@ -35,6 +42,10 @@ import {
 } from '../commands'
 
 const ftcScout = new FtcScoutClient()
+
+function simulationService() {
+  return getSimulationService(emitIpcEvent)
+}
 
 /** Every channel in the contract must have exactly one handler here. */
 type Handlers = {
@@ -61,6 +72,38 @@ const handlers: Handlers = {
     const error = await shell.openPath(noticesPath)
     if (error) throw new Error(error)
   },
+
+  // ── SpiderKit simulation ──
+  'simulation:getStatus': async () => simulationService().getStatus(),
+  'simulation:pickProject': async () => {
+    const win = BrowserWindow.getFocusedWindow() ?? undefined
+    const result = await dialog.showOpenDialog(win!, {
+      title: 'Choose robot simulation project',
+      properties: ['openDirectory']
+    })
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
+  },
+  'simulation:pickRlog': async () => {
+    const win = BrowserWindow.getFocusedWindow() ?? undefined
+    const result = await dialog.showOpenDialog(win!, {
+      title: 'Choose gamepad RLOG',
+      properties: ['openFile'],
+      filters: [{ name: 'RLOG files', extensions: ['rlog'] }]
+    })
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
+  },
+  'simulation:discoverProject': async (projectDirectory) =>
+    discoverSimulationProject(projectDirectory),
+  'simulation:buildProject': async (projectDirectory) =>
+    buildSimulationProject(projectDirectory),
+  'simulation:listCatalog': async (projectDirectory) =>
+    listSimulationCatalog(projectDirectory),
+  'simulation:start': async (config) => simulationService().start(config),
+  'simulation:pause': async () => simulationService().pause(),
+  'simulation:resume': async () => simulationService().resume(),
+  'simulation:step': async (count) => simulationService().step(count),
+  'simulation:advance': async (durationSeconds) => simulationService().advance(durationSeconds),
+  'simulation:stop': async () => simulationService().stop(),
 
   // ── MCP ──
   'mcp:status': async () => getMcpStatus(),
@@ -265,4 +308,11 @@ export function registerIpcHandlers(): void {
     const handler = handlers[channel] as (...args: unknown[]) => unknown
     ipcMain.handle(channel, (_event, ...args) => handler(...args))
   }
+  ipcMain.on('simulation:gamepads', (_event, frame) => {
+    try {
+      simulationService().publishGamepads(frame)
+    } catch (error) {
+      console.error('Rejected simulation gamepad frame:', error)
+    }
+  })
 }

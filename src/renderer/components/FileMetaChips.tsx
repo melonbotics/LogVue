@@ -6,7 +6,7 @@ const VISIBLE_CHIP_LIMIT = 6
 const VALUE_DISPLAY_LIMIT = 24
 
 /**
- * Presentation for metadata keys we recognise (our PsiKit conventions). Anything
+ * Presentation for metadata keys we recognise (our SpiderKit conventions). Anything
  * not listed falls through to a generic `key: value` chip, so unknown keys from
  * other teams' robot code still display — the registry is purely cosmetic.
  */

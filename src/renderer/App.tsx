@@ -9,6 +9,7 @@ import SessionTree from './components/SessionTree'
 import SessionDetails from './components/SessionDetails'
 import LogDashboard from './components/LogDashboard'
 import HubLogTable from './components/HubLogTable'
+import SimulateWorkspace from './components/SimulateWorkspace'
 import EmptyState from './components/EmptyState'
 import NewSessionDialog from './components/NewSessionDialog'
 import SettingsDialog from './components/SettingsDialog'
@@ -85,6 +86,10 @@ export default function App(): JSX.Element {
       {view === 'device' ? (
         <main className="pane detail-pane">
           <HubLogTable />
+        </main>
+      ) : view === 'simulate' ? (
+        <main className="pane detail-pane simulate-pane">
+          <SimulateWorkspace />
         </main>
       ) : (
         <>

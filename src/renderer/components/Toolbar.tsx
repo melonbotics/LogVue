@@ -69,12 +69,20 @@ export default function Toolbar({ settings, onNewTopLevel, onSettings, onMcpSetu
             Library
           </button>
           <button
+            className={`tab ${view === 'simulate' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={view === 'simulate'}
+            onClick={() => setView('simulate')}
+          >
+            Simulate
+          </button>
+          <button
             className={`tab ${view === 'device' ? 'active' : ''}`}
             role="tab"
             aria-selected={view === 'device'}
             onClick={() => setView('device')}
           >
-            {sourceName}
+            Control Hub
           </button>
         </div>
         <SourceBadge

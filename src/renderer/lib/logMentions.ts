@@ -54,7 +54,7 @@ export function logMentionMarkdown(filename: string, label: string): string {
 }
 
 /**
- * Compact, disambiguated presentation for canonical PsiKit filenames. The date/time
+ * Compact, disambiguated presentation for canonical SpiderKit filenames. The date/time
  * suffix matters because a session commonly contains many logs from the same op-mode.
  */
 export function toLogMentionCandidate(file: FolderFile): LogMentionCandidate {
