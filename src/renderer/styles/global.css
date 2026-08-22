@@ -859,20 +859,30 @@ input[type="checkbox"] {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-.sim-inline-actions {
+.sim-project-rate-field {
+  grid-column: 2;
+}
+.sim-project-rate-row {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 7px;
-  flex-wrap: wrap;
+}
+.sim-project-rate-row > input {
+  width: auto;
+  min-width: 70px;
+  height: 38px;
+  flex: 1 1 90px;
 }
 .sim-project-actions {
-  grid-column: 2;
-  align-items: flex-end;
+  display: flex;
+  align-items: center;
   justify-content: flex-end;
-  text-align: right;
+  gap: 7px;
+  flex: none;
 }
-.sim-project-actions .sim-inline-actions {
-  justify-content: flex-end;
+.sim-project-actions button {
+  height: 38px;
 }
 .sim-inputs {
   display: grid;
@@ -1095,7 +1105,7 @@ input[type="checkbox"] {
   .sim-project-summary-field,
   .sim-opmode-field,
   .sim-scenario-field,
-  .sim-project-actions {
+  .sim-project-rate-field {
     grid-column: 1;
   }
 }

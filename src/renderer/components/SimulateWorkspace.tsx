@@ -478,27 +478,43 @@ export default function SimulateWorkspace(): JSX.Element {
                         : 'This robot plugin does not declare additional scenarios.')}
                   </span>
                 </div>
-                <div className="sim-field sim-project-actions">
-                  <div className="sim-inline-actions">
-                    <button
-                      type="button"
-                      className="ghost primary-control"
-                      disabled={configLocked || busy !== null || !displayedProject}
-                      onClick={() => void refreshCatalog()}
-                    >
-                      {busy === 'refresh' ? 'Refreshing…' : 'Refresh catalog'}
-                    </button>
-                    {displayedProject?.buildAvailable && (
+                <div className="sim-field sim-project-rate-field">
+                  <label htmlFor="sim-update-rate">Update rate</label>
+                  <div className="sim-project-rate-row">
+                    <input
+                      id="sim-update-rate"
+                      type="number"
+                      min="1"
+                      max="1000"
+                      step="1"
+                      value={rateHz}
+                      disabled={configLocked || busy === 'start'}
+                      onChange={(event) => setRateHz(event.target.value)}
+                    />
+                    <div className="sim-project-actions">
                       <button
                         type="button"
-                        className="primary-control"
-                        disabled={configLocked || busy !== null}
-                        onClick={() => void buildProject()}
+                        className="ghost primary-control"
+                        disabled={configLocked || busy !== null || !displayedProject}
+                        onClick={() => void refreshCatalog()}
                       >
-                        {busy === 'build' ? 'Building…' : 'Build'}
+                        {busy === 'refresh' ? 'Refreshing…' : 'Refresh catalog'}
                       </button>
-                    )}
+                      {displayedProject?.buildAvailable && (
+                        <button
+                          type="button"
+                          className="primary-control"
+                          disabled={configLocked || busy !== null}
+                          onClick={() => void buildProject()}
+                        >
+                          {busy === 'build' ? 'Building…' : 'Build'}
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  <span className="sim-field-help">
+                    Fixed simulation ticks per second; 50 Hz gives a 20 ms timestep.
+                  </span>
                 </div>
               </div>
             </div>
@@ -539,22 +555,6 @@ export default function SimulateWorkspace(): JSX.Element {
                 />
               </div>
               <div className="sim-session-options">
-                <div className="sim-field">
-                  <label htmlFor="sim-update-rate">Update rate</label>
-                  <input
-                    id="sim-update-rate"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    step="1"
-                    value={rateHz}
-                    disabled={configLocked || busy === 'start'}
-                    onChange={(event) => setRateHz(event.target.value)}
-                  />
-                  <span className="sim-field-help">
-                    Fixed simulation ticks per second; 50 Hz gives a 20 ms timestep.
-                  </span>
-                </div>
                 <div className="sim-field">
                   <label htmlFor="sim-fast-duration">Fast advance duration</label>
                   <input
