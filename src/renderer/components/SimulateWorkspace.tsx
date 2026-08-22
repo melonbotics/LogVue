@@ -478,7 +478,6 @@ export default function SimulateWorkspace(): JSX.Element {
                   </span>
                 </div>
                 <div className="sim-field sim-project-actions">
-                  <span className="sim-field-label">Project actions</span>
                   <div className="sim-inline-actions">
                     {displayedProject?.buildAvailable && (
                       <button
@@ -499,7 +498,6 @@ export default function SimulateWorkspace(): JSX.Element {
                       {busy === 'refresh' ? 'Refreshing…' : 'Refresh catalog'}
                     </button>
                   </div>
-                  <span className="sim-field-help">Build runs the manifest command without a shell.</span>
                 </div>
               </div>
             </div>
