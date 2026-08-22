@@ -406,7 +406,7 @@ export default function SimulateWorkspace(): JSX.Element {
             <div className="sim-card-body">
               <div className="sim-form-grid">
                 {displayedProject && (
-                  <div className="sim-field full">
+                  <div className="sim-field sim-project-summary-field">
                     <div className="sim-project-summary">
                       <div className="sim-project-name">{displayedProject.manifest.name}</div>
                       <span
@@ -422,7 +422,7 @@ export default function SimulateWorkspace(): JSX.Element {
                   </div>
                 )}
 
-                <div className="sim-field">
+                <div className={`sim-field ${displayedProject ? 'sim-opmode-field' : 'full'}`}>
                   <label htmlFor="sim-opmode">OpMode</label>
                   <select
                     id="sim-opmode"
@@ -452,7 +452,7 @@ export default function SimulateWorkspace(): JSX.Element {
                     ))}
                   </select>
                 </div>
-                <div className="sim-field">
+                <div className="sim-field sim-scenario-field">
                   <label htmlFor="sim-scenario">Scenario</label>
                   <select
                     id="sim-scenario"
@@ -479,6 +479,14 @@ export default function SimulateWorkspace(): JSX.Element {
                 </div>
                 <div className="sim-field sim-project-actions">
                   <div className="sim-inline-actions">
+                    <button
+                      type="button"
+                      className="ghost primary-control"
+                      disabled={configLocked || busy !== null || !displayedProject}
+                      onClick={() => void refreshCatalog()}
+                    >
+                      {busy === 'refresh' ? 'Refreshing…' : 'Refresh catalog'}
+                    </button>
                     {displayedProject?.buildAvailable && (
                       <button
                         type="button"
@@ -489,14 +497,6 @@ export default function SimulateWorkspace(): JSX.Element {
                         {busy === 'build' ? 'Building…' : 'Build'}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      className="primary-control"
-                      disabled={configLocked || busy !== null || !displayedProject}
-                      onClick={() => void refreshCatalog()}
-                    >
-                      {busy === 'refresh' ? 'Refreshing…' : 'Refresh catalog'}
-                    </button>
                   </div>
                 </div>
               </div>

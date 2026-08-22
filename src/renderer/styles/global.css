@@ -793,6 +793,16 @@ input[type="checkbox"] {
   border-radius: 8px;
   background: var(--bg);
 }
+.sim-project-summary-field {
+  grid-column: 1;
+  justify-content: flex-end;
+}
+.sim-opmode-field {
+  grid-column: 2;
+}
+.sim-scenario-field {
+  grid-column: 1;
+}
 .sim-project-name {
   flex: 0 1 auto;
   min-width: 0;
@@ -828,8 +838,9 @@ input[type="checkbox"] {
   flex-wrap: wrap;
 }
 .sim-project-actions {
-  grid-column: 1 / -1;
+  grid-column: 2;
   align-items: flex-end;
+  padding-top: 20px;
   text-align: right;
 }
 .sim-project-actions .sim-inline-actions {
@@ -1052,6 +1063,15 @@ input[type="checkbox"] {
   .sim-inputs,
   .sim-session-options {
     grid-template-columns: 1fr;
+  }
+  .sim-project-summary-field,
+  .sim-opmode-field,
+  .sim-scenario-field,
+  .sim-project-actions {
+    grid-column: 1;
+  }
+  .sim-project-actions {
+    padding-top: 0;
   }
 }
 
