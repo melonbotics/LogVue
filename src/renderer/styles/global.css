@@ -604,31 +604,6 @@ input[type="checkbox"] {
   flex-direction: column;
   gap: 18px;
 }
-.simulate-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-}
-.simulate-header-copy {
-  min-width: 0;
-}
-.simulate-eyebrow {
-  margin-bottom: 5px;
-  color: var(--accent);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.simulate-header h1 {
-  font-size: 1.35rem;
-  line-height: 1.25;
-}
-.simulate-header p {
-  margin-top: 6px;
-  color: var(--muted);
-  line-height: 1.45;
-}
 .sim-state-badge {
   display: inline-flex;
   align-items: center;

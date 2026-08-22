@@ -371,15 +371,6 @@ export default function SimulateWorkspace(): JSX.Element {
 
   return (
     <div className="simulate-workspace">
-      <header className="simulate-header">
-        <div className="simulate-header-copy">
-          <div className="simulate-eyebrow">SpiderKit sim-cli</div>
-          <h1>Simulate an OpMode</h1>
-          <p>Configure one immutable session, then let sim-cli own pacing and every simulation tick.</p>
-        </div>
-        <PhaseBadge phase={phase} pid={status?.pid ?? null} />
-      </header>
-
       {displayedError && (
         <div className="sim-error" role="alert">
           {displayedError}
@@ -617,6 +608,7 @@ export default function SimulateWorkspace(): JSX.Element {
                 <h2>Session control</h2>
                 <p>Run is real-time; Step and bounded fast advance execute without wall-clock pacing.</p>
               </div>
+              <PhaseBadge phase={phase} pid={status?.pid ?? null} />
             </div>
             <div className="sim-card-body">
               <div className="sim-runtime">
