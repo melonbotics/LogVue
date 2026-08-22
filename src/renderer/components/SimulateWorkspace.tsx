@@ -393,7 +393,6 @@ export default function SimulateWorkspace(): JSX.Element {
             <div className="sim-card-header">
               <div>
                 <h2>Robot project</h2>
-                <p>Select a directory containing spiderkit-sim.json.</p>
               </div>
               {configLocked && <span className="sim-lock">Locked for this session</span>}
             </div>
@@ -526,7 +525,6 @@ export default function SimulateWorkspace(): JSX.Element {
             <div className="sim-card-header">
               <div>
                 <h2>Session inputs</h2>
-                <p>NONE is neutral, LIVE is the latest browser frame, and RLOG is deterministic playback.</p>
               </div>
               {configLocked && <span className="sim-lock">Source modes locked for this session</span>}
             </div>
@@ -707,7 +705,6 @@ export default function SimulateWorkspace(): JSX.Element {
             <div className="sim-card-header">
               <div>
                 <h2>Runtime</h2>
-                <p>Freshness is measured where sim-cli receives each frame.</p>
               </div>
             </div>
             <div className="sim-card-body compact">
