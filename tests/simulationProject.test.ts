@@ -32,7 +32,16 @@ function project(manifestPatch: Record<string, unknown> = {}): string {
         windows: ['java.exe', '-cp', 'dist/lib/*', 'org.barkerredbacks.spiderkit.sim.cli.SpiderKitSimMain']
       },
       buildCommand: {
-        linux: ['./gradlew', ':RobotSim:installDist']
+        linux: ['./gradlew', ':RobotSim:installDist'],
+        windows: [
+          'java.exe',
+          '-classpath',
+          'gradle/wrapper/gradle-wrapper.jar',
+          'org.gradle.wrapper.GradleWrapperMain',
+          '-p',
+          'desktop',
+          ':RobotSim:installDist'
+        ]
       },
       ...manifestPatch
     })
@@ -54,7 +63,16 @@ describe('SpiderKit simulation project manifest', () => {
       'dist/lib/*',
       'org.barkerredbacks.spiderkit.sim.cli.SpiderKitSimMain'
     ])
-    expect(windows.buildAvailable).toBe(false)
+    expect(windows.manifest.buildCommand?.windows).toEqual([
+      'java.exe',
+      '-classpath',
+      'gradle/wrapper/gradle-wrapper.jar',
+      'org.gradle.wrapper.GradleWrapperMain',
+      '-p',
+      'desktop',
+      ':RobotSim:installDist'
+    ])
+    expect(windows.buildAvailable).toBe(true)
   })
 
   it('rejects a working directory that escapes through a symlink', () => {

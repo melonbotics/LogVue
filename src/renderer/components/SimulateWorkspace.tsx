@@ -91,7 +91,11 @@ export default function SimulateWorkspace(): JSX.Element {
           setCatalog(EMPTY_CATALOG)
           setSelectedProgram(null)
           setScenarioId('')
-          setLocalError(messageOf(error))
+          setLocalError(
+            discovered.buildAvailable
+              ? `Catalog unavailable. Build the robot project, then refresh. ${messageOf(error)}`
+              : messageOf(error)
+          )
         }
       }
     } catch (error) {

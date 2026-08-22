@@ -53,6 +53,10 @@ discover the packaged SpiderKit plugins and OpModes, and control a simulation ov
 `spiderkit-sim-opmode` protocol. The robot-local runner remains responsible for lifecycle, pacing,
 plants, and logging; LogVue is the operator UI and live gamepad source.
 
+Use **Build** after selecting a fresh robot checkout and again after changing robot or SpiderKit
+code. LogVue itself may be running from `npm run dev`; the generated distribution belongs to the
+selected robot repository, not to the LogVue installation.
+
 Continuous Run is always real-time, which suits a human driving with a LIVE gamepad. For agent
 tests, RLOG-driven sessions, and batch log generation, start paused and request an explicit duration
 with **Run fast**. SpiderKit executes exactly that many fixed-dt ticks without wall-clock pacing and
