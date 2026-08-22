@@ -6,7 +6,6 @@ import {
   useAgentOpModeStatus,
   useConnectAdb,
   useMcpStatus,
-  usePickArchiveRoot,
   useSetAgentOpModeControlEnabled
 } from '../api/hooks'
 import { useAppStore } from '../stores/appStore'
@@ -20,7 +19,6 @@ interface Props {
 }
 
 export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JSX.Element {
-  const pick = usePickArchiveRoot()
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
   const { data: adb } = useAdbStatus()
@@ -41,20 +39,12 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
 
   return (
     <header className="toolbar">
-      <span className="brand">LogVue</span>
-
-      <div className="root">
-        <span className="root-label">Library</span>
-        <code className="root-path" title={settings.archiveRoot ?? ''}>
-          {settings.archiveRoot ?? 'none'}
-        </code>
-        <button className="ghost sm" onClick={() => pick.mutate()}>
-          Change…
-        </button>
+      <div className="toolbar-left">
+        <span className="brand">LogVue</span>
       </div>
 
-      <div className="source-switch">
-        <div className="tabs" role="tablist">
+      <div className="view-switch">
+        <div className="tabs" role="tablist" aria-label="View">
           <button
             className={`tab ${view === 'archive' ? 'active' : ''}`}
             role="tab"
@@ -82,42 +72,41 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
         </div>
       </div>
 
-      <div className="spacer" />
+      <div className="toolbar-right">
+        {agentOpMode?.operatorEnabled && (
+          <button
+            type="button"
+            className="source-status agent-control-live"
+            title="Disable agent OpMode control immediately"
+            disabled={setAgentOpModeControl.isPending}
+            onClick={() => setAgentOpModeControl.mutate(false)}
+          >
+            <span className="dot" />
+            <span>
+              {setAgentOpModeControl.isPending
+                ? 'Disabling agent control…'
+                : `Agent control ${agentOpMode.state === 'active' ? 'ON' : agentOpMode.state}`}
+            </span>
+            {!setAgentOpModeControl.isPending && <span className="agent-control-disable">· disable</span>}
+          </button>
+        )}
 
-      {agentOpMode?.operatorEnabled && (
-        <button
-          type="button"
-          className="source-status agent-control-live"
-          title="Disable agent OpMode control immediately"
-          disabled={setAgentOpModeControl.isPending}
-          onClick={() => setAgentOpModeControl.mutate(false)}
-        >
-          <span className="dot" />
-          <span>
-            {setAgentOpModeControl.isPending
-              ? 'Disabling agent control…'
-              : `Agent control ${agentOpMode.state === 'active' ? 'ON' : agentOpMode.state}`}
-          </span>
-          {!setAgentOpModeControl.isPending && <span className="agent-control-disable">· disable</span>}
+        <SourceBadge
+          connected={sourceConnected}
+          label={sourceLabel}
+          sourceName={sourceName}
+          address={settings.adbAddress}
+          adbSource={!sourceIsFolder}
+          connecting={connect.isPending}
+          onConnect={!sourceIsFolder && !adb?.adbMissing ? () => connect.mutate() : undefined}
+        />
+
+        <McpBadge status={mcp} onClick={onMcpSetup} />
+
+        <button className="ghost sm" onClick={onSettings}>
+          Settings
         </button>
-      )}
-
-      <SourceBadge
-        connected={sourceConnected}
-        label={sourceLabel}
-        sourceName={sourceName}
-        address={settings.adbAddress}
-        adbSource={!sourceIsFolder}
-        connecting={connect.isPending}
-        onConnect={!sourceIsFolder && !adb?.adbMissing ? () => connect.mutate() : undefined}
-      />
-
-      <McpBadge status={mcp} onClick={onMcpSetup} />
-
-      <button className="ghost sm" onClick={onSettings}>
-        Settings
-      </button>
-
+      </div>
     </header>
   )
 }
