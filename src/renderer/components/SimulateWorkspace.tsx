@@ -407,6 +407,7 @@ export default function SimulateWorkspace(): JSX.Element {
               <div className="sim-form-grid">
                 {displayedProject && (
                   <div className="sim-field sim-project-summary-field">
+                    <span className="sim-field-label">Project</span>
                     <div className="sim-project-summary">
                       <div className="sim-project-name">{displayedProject.manifest.name}</div>
                       <span

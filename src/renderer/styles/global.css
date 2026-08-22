@@ -824,7 +824,6 @@ input[type="checkbox"] {
 }
 .sim-project-summary-field {
   grid-column: 1;
-  justify-content: flex-end;
 }
 .sim-opmode-field {
   grid-column: 2;
@@ -869,7 +868,7 @@ input[type="checkbox"] {
 .sim-project-actions {
   grid-column: 2;
   align-items: flex-end;
-  padding-top: 20px;
+  justify-content: flex-end;
   text-align: right;
 }
 .sim-project-actions .sim-inline-actions {
@@ -1098,9 +1097,6 @@ input[type="checkbox"] {
   .sim-scenario-field,
   .sim-project-actions {
     grid-column: 1;
-  }
-  .sim-project-actions {
-    padding-top: 0;
   }
 }
 
