@@ -78,7 +78,6 @@ export default function App(): JSX.Element {
     <div className="shell">
       <Toolbar
         settings={settings}
-        onNewTopLevel={() => setNewParent({ path: settings.archiveRoot as string, label: 'Library' })}
         onSettings={() => setShowSettings(true)}
         onMcpSetup={() => setShowMcpSetup(true)}
       />
@@ -93,7 +92,11 @@ export default function App(): JSX.Element {
         </main>
       ) : (
         <>
-          <QuickFindBar />
+          <QuickFindBar
+            onNewTopLevel={() =>
+              setNewParent({ path: settings.archiveRoot as string, label: 'Library' })
+            }
+          />
           <div className="panes">
             <aside className="pane tree-pane">
               <SessionTree />

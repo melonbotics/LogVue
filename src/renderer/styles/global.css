@@ -426,6 +426,10 @@ input[type="checkbox"] {
   color: var(--muted);
   white-space: nowrap;
 }
+.quick-new-session-btn {
+  flex: none;
+  white-space: nowrap;
+}
 
 /* ── hub log table ────────────────────────────────────────── */
 .hublogs {

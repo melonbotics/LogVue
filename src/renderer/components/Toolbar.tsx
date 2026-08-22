@@ -16,12 +16,11 @@ const MCP_ACTIVE_WINDOW_MS = 5 * 60 * 1000
 
 interface Props {
   settings: AppSettings
-  onNewTopLevel: () => void
   onSettings: () => void
   onMcpSetup: () => void
 }
 
-export default function Toolbar({ settings, onNewTopLevel, onSettings, onMcpSetup }: Props): JSX.Element {
+export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JSX.Element {
   const pick = usePickArchiveRoot()
   const qc = useQueryClient()
   const view = useAppStore((s) => s.view)
@@ -121,11 +120,6 @@ export default function Toolbar({ settings, onNewTopLevel, onSettings, onMcpSetu
         Settings
       </button>
 
-      {view === 'archive' && (
-        <button className="sm" onClick={onNewTopLevel}>
-          + New session
-        </button>
-      )}
       {view === 'device' && (
         <button className="ghost sm" onClick={() => qc.invalidateQueries({ queryKey: ['adb', 'hubLogs'] })}>
           Refresh logs

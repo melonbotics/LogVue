@@ -27,7 +27,11 @@ import StaleSessionImportDialog from './StaleSessionImportDialog'
  * The quick-find bar above the archive view: free-text search and a "Latest"
  * jump button.
  */
-export default function QuickFindBar(): JSX.Element {
+export default function QuickFindBar({
+  onNewTopLevel
+}: {
+  onNewTopLevel: () => void
+}): JSX.Element {
   const search = useAppStore((s) => s.search)
   const setSearch = useAppStore((s) => s.setSearch)
   const select = useAppStore((s) => s.select)
@@ -171,6 +175,9 @@ export default function QuickFindBar(): JSX.Element {
             {latest.recorded && <span className="latest-when">{formatRelative(latest.recorded)}</span>}
           </button>
         )}
+        <button className="sm quick-new-session-btn" onClick={onNewTopLevel}>
+          + New session
+        </button>
       </div>
       {showStaleWarning && activeSessionNode && latestActiveLogTime !== null && (
         <StaleSessionImportDialog
