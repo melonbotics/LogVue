@@ -394,9 +394,6 @@ export default function SimulateWorkspace(): JSX.Element {
               <h2>Robot project</h2>
               <div className="sim-project-picker">
                 {configLocked && <span className="sim-lock">Locked for this session</span>}
-                <div className="sim-path-value" title={projectDirectory}>
-                  {projectDirectory || 'No robot project selected'}
-                </div>
                 <button
                   type="button"
                   className="ghost sm"
@@ -412,16 +409,15 @@ export default function SimulateWorkspace(): JSX.Element {
                 {displayedProject && (
                   <div className="sim-field full">
                     <div className="sim-project-summary">
-                      <div className="sim-project-mark">RS</div>
-                      <div className="sim-project-copy">
-                        <div className="sim-project-name">{displayedProject.manifest.name}</div>
-                        <div
-                          className="sim-project-launcher"
-                          title={displayedProject.launchCommand.join(' ')}
-                        >
-                          {displayedProject.launchCommand.join(' ')}
-                        </div>
-                      </div>
+                      <div className="sim-project-name">{displayedProject.manifest.name}</div>
+                      <span
+                        className="sim-project-info"
+                        title={`Launch command: ${displayedProject.launchCommand.join(' ')}`}
+                        aria-label={`Launch command: ${displayedProject.launchCommand.join(' ')}`}
+                        tabIndex={0}
+                      >
+                        i
+                      </span>
                       <span className="pill imported">Manifest loaded</span>
                     </div>
                   </div>
