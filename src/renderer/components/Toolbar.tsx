@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import type { AppSettings } from '@shared/types/session'
 import type { McpStatus } from '@shared/types/ipc'
 import {
@@ -22,7 +21,6 @@ interface Props {
 
 export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JSX.Element {
   const pick = usePickArchiveRoot()
-  const qc = useQueryClient()
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
   const { data: adb } = useAdbStatus()
@@ -119,12 +117,6 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
       <button className="ghost sm" onClick={onSettings}>
         Settings
       </button>
-
-      {view === 'device' && (
-        <button className="ghost sm" onClick={() => qc.invalidateQueries({ queryKey: ['adb', 'hubLogs'] })}>
-          Refresh logs
-        </button>
-      )}
 
     </header>
   )
