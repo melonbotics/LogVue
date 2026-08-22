@@ -371,6 +371,30 @@ input[type="checkbox"] {
   font-weight: 600;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
+.tab.sim-session-active {
+  gap: 0.4rem;
+  color: var(--text);
+}
+.tab.sim-session-active:not(.active) {
+  background: color-mix(in srgb, var(--good) 10%, transparent);
+}
+.sim-tab-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 14%, transparent);
+}
+.tab.sim-session-active.paused:not(.active),
+.tab.sim-session-active.stopping:not(.active) {
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+.tab.sim-session-active.paused .sim-tab-dot,
+.tab.sim-session-active.stopping .sim-tab-dot {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 14%, transparent);
+}
 
 /* ── adb status badge ─────────────────────────────────────── */
 .status {
@@ -785,13 +809,18 @@ input[type="checkbox"] {
   white-space: nowrap;
 }
 .sim-project-summary {
+  box-sizing: border-box;
+  height: 38px;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg);
+}
+.sim-form-grid select {
+  height: 38px;
 }
 .sim-project-summary-field {
   grid-column: 1;

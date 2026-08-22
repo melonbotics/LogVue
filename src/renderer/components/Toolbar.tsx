@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { AppSettings } from '@shared/types/session'
 import type { McpStatus } from '@shared/types/ipc'
+import type { SimulationStatus } from '@shared/types/simulation'
 import {
   useAdbStatus,
   useAgentOpModeStatus,
@@ -8,6 +9,7 @@ import {
   useMcpStatus,
   useSetAgentOpModeControlEnabled
 } from '../api/hooks'
+import { api } from '../api/client'
 import { useAppStore } from '../stores/appStore'
 
 const MCP_ACTIVE_WINDOW_MS = 5 * 60 * 1000
@@ -24,6 +26,7 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
   const { data: adb } = useAdbStatus()
   const { data: mcp } = useMcpStatus()
   const { data: agentOpMode } = useAgentOpModeStatus()
+  const [simulationStatus, setSimulationStatus] = useState<SimulationStatus | null>(null)
   const setAgentOpModeControl = useSetAgentOpModeControlEnabled()
   const connect = useConnectAdb()
   const sourceIsFolder = settings.hubDataSource === 'folder'
@@ -36,6 +39,24 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
     : adb?.adbMissing
       ? 'adb not found'
       : 'Connect ADB'
+  const simulationActive = Boolean(simulationStatus?.pid)
+    || ['starting', 'running', 'paused', 'stopping'].includes(simulationStatus?.phase ?? '')
+
+  useEffect(() => {
+    let alive = true
+    let receivedStatusEvent = false
+    const unsubscribe = api.simulation.onStatus((next) => {
+      receivedStatusEvent = true
+      if (alive) setSimulationStatus(next)
+    })
+    void api.simulation.getStatus().then((next) => {
+      if (alive && !receivedStatusEvent) setSimulationStatus(next)
+    }).catch(() => undefined)
+    return () => {
+      alive = false
+      unsubscribe()
+    }
+  }, [])
 
   return (
     <header className="toolbar">
@@ -54,12 +75,15 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
             Library
           </button>
           <button
-            className={`tab ${view === 'simulate' ? 'active' : ''}`}
+            className={`tab ${view === 'simulate' ? 'active' : ''}${simulationActive ? ` sim-session-active ${simulationStatus?.phase ?? ''}` : ''}`}
             role="tab"
             aria-selected={view === 'simulate'}
+            aria-label={simulationActive ? `Simulate, session ${simulationStatus?.phase}` : undefined}
+            title={simulationActive ? `Simulation session ${simulationStatus?.phase}` : undefined}
             onClick={() => setView('simulate')}
           >
-            Simulate
+            <span>Simulate</span>
+            {simulationActive && <span className="sim-tab-dot" aria-hidden="true" />}
           </button>
           <button
             className={`tab ${view === 'device' ? 'active' : ''}`}
