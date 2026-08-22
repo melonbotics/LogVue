@@ -263,9 +263,13 @@ input[type="checkbox"] {
 .source-status.ok .dot {
   background: var(--good);
 }
+.source-connection-status {
+  width: 8.5rem;
+  justify-content: center;
+}
 .mcp-status {
   cursor: pointer;
-  min-width: 7rem;
+  width: 4rem;
   justify-content: center;
 }
 .mcp-status.ready {

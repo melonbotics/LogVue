@@ -39,9 +39,7 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
       : 'folder not set'
     : adb?.adbMissing
       ? 'adb not found'
-      : adb?.connected
-        ? adb.device ?? 'Control Hub'
-        : 'not connected'
+      : 'Connect ADB'
 
   return (
     <header className="toolbar">
@@ -84,14 +82,6 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
             Control Hub
           </button>
         </div>
-        <SourceBadge
-          connected={sourceConnected}
-          label={sourceLabel}
-          sourceName={sourceName}
-          address={settings.adbAddress}
-          connecting={connect.isPending}
-          onConnect={!sourceIsFolder && !adb?.adbMissing ? () => connect.mutate() : undefined}
-        />
       </div>
 
       <div className="spacer" />
@@ -113,6 +103,16 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
           {!setAgentOpModeControl.isPending && <span className="agent-control-disable">· disable</span>}
         </button>
       )}
+
+      <SourceBadge
+        connected={sourceConnected}
+        label={sourceLabel}
+        sourceName={sourceName}
+        address={settings.adbAddress}
+        adbSource={!sourceIsFolder}
+        connecting={connect.isPending}
+        onConnect={!sourceIsFolder && !adb?.adbMissing ? () => connect.mutate() : undefined}
+      />
 
       <McpBadge status={mcp} onClick={onMcpSetup} />
 
@@ -160,11 +160,11 @@ function McpBadge({ status, onClick }: { status: McpStatus | undefined; onClick:
     <button
       type="button"
       className={`source-status mcp-status ${stateClass}`}
-      title="Open MCP setup instructions"
+      title={`${availabilityLabel}. Open MCP setup instructions.`}
       onClick={onClick}
     >
       <span className="dot" />
-      <span>{availabilityLabel}</span>
+      <span>MCP</span>
     </button>
   )
 }
@@ -174,6 +174,7 @@ function SourceBadge({
   label,
   sourceName,
   address,
+  adbSource,
   connecting,
   onConnect
 }: {
@@ -181,15 +182,22 @@ function SourceBadge({
   label: string
   sourceName: string
   address: string
+  adbSource: boolean
   connecting: boolean
   onConnect?: () => void
 }): JSX.Element {
   const connectable = !!onConnect && !connected
-  const displayLabel = connecting ? 'Connecting ADB…' : connectable ? 'Connect ADB' : label
+  const displayLabel = adbSource
+    ? connecting
+      ? 'Connecting ADB…'
+      : connected
+        ? 'ADB connected'
+        : 'Connect ADB'
+    : label
   return (
     <button
       type="button"
-      className={`source-status ${connected ? 'ok' : 'off'}${connectable ? ' connectable' : ''}${connecting ? ' connecting' : ''}`}
+      className={`source-status source-connection-status ${connected ? 'ok' : 'off'}${connectable ? ' connectable' : ''}${connecting ? ' connecting' : ''}`}
       title={
         connectable
           ? `Connect ADB to ${address}`
