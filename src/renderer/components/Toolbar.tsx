@@ -40,7 +40,7 @@ export default function Toolbar({ settings, onSettings, onMcpSetup }: Props): JS
       ? 'adb not found'
       : 'Connect ADB'
   const simulationActive = Boolean(simulationStatus?.pid)
-    || ['starting', 'running', 'paused', 'stopping'].includes(simulationStatus?.phase ?? '')
+    || ['starting', 'initialized', 'running', 'paused', 'stopping'].includes(simulationStatus?.phase ?? '')
 
   useEffect(() => {
     let alive = true

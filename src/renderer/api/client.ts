@@ -47,8 +47,9 @@ export const api = {
       window.api.invoke('simulation:buildProject', projectDirectory),
     listCatalog: (projectDirectory: string) =>
       window.api.invoke('simulation:listCatalog', projectDirectory),
-    start: (config: import('@shared/types/simulation').SimulationStartConfig) =>
-      window.api.invoke('simulation:start', config),
+    init: (config: import('@shared/types/simulation').SimulationStartConfig) =>
+      window.api.invoke('simulation:init', config),
+    start: () => window.api.invoke('simulation:start'),
     pause: () => window.api.invoke('simulation:pause'),
     resume: () => window.api.invoke('simulation:resume'),
     step: (count = 1) => window.api.invoke('simulation:step', count),

@@ -137,7 +137,6 @@ export interface SimulationStartConfig {
   rateHz?: number
   staleMs?: number
   rlogPort?: number
-  startPaused?: boolean
 }
 
 export interface SimulationGamepadRuntimeStatus {
@@ -150,7 +149,7 @@ export interface SimulationGamepadRuntimeStatus {
 }
 
 export interface SimulationRunnerStatus {
-  state: 'RUNNING' | 'PAUSED' | 'STOPPED' | 'FAILED'
+  state: 'INITIALIZED' | 'RUNNING' | 'PAUSED' | 'STOPPED' | 'FAILED'
   id: string
   tick: number
   timeSeconds: number
@@ -172,6 +171,7 @@ export interface SimulationRunnerStatus {
 export type SimulationPhase =
   | 'idle'
   | 'starting'
+  | 'initialized'
   | 'running'
   | 'paused'
   | 'stopping'

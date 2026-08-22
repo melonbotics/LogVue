@@ -9,6 +9,7 @@ import { listSimulationCatalog } from '../src/main/services/simulation/project'
 import type { SimulationGamepadSnapshot } from '../src/shared/types/simulation'
 
 const temporaryDirectories: string[] = []
+type RunnerState = 'INITIALIZED' | 'RUNNING' | 'PAUSED' | 'STOPPED' | 'FAILED'
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -26,7 +27,7 @@ class ReplyingStdin extends EventEmitter {
 
   constructor(
     private readonly stdout: FakeReadable,
-    private readonly replyState: 'PAUSED' | 'FAILED',
+    private replyState: RunnerState,
     private readonly onEnd: () => void
   ) {
     super()
@@ -37,7 +38,11 @@ class ReplyingStdin extends EventEmitter {
     this.requests.push(request)
     callback(null)
     queueMicrotask(() => {
-      const state = request.command === 'stop' ? 'STOPPED' : this.replyState
+      if (request.command === 'start' && this.replyState === 'INITIALIZED') this.replyState = 'RUNNING'
+      if (request.command === 'pause' && this.replyState === 'RUNNING') this.replyState = 'PAUSED'
+      if (request.command === 'resume' && this.replyState === 'PAUSED') this.replyState = 'RUNNING'
+      if (request.command === 'stop') this.replyState = 'STOPPED'
+      const state = this.replyState
       this.stdout.emit(
         'data',
         `${JSON.stringify({
@@ -69,7 +74,7 @@ class ReplyingStdin extends EventEmitter {
 }
 
 function fakeChild(
-  replyState: 'PAUSED' | 'FAILED' = 'PAUSED',
+  replyState: RunnerState = 'INITIALIZED',
   closeOnInputEnd = true
 ) {
   const stdout = new FakeReadable()
@@ -164,15 +169,14 @@ describe('SimulationService', () => {
       'linux'
     )
 
-    await service.start({
+    await service.initialize({
       projectDirectory: project(),
       opModeId: 'test.opmode',
       pluginId: 'test.plugin',
       scenarioId: 'loaded',
       parameters: { mass: '4.2' },
       gamepad1: { kind: 'LIVE' },
-      gamepad2: { kind: 'NONE' },
-      startPaused: true
+      gamepad2: { kind: 'NONE' }
     })
 
     expect(launched).toEqual([
@@ -190,9 +194,10 @@ describe('SimulationService', () => {
       'LIVE',
       '--gamepad2',
       'NONE',
-      '--paused'
+      '--init-only'
     ])
 
+    await expect(service.start()).resolves.toMatchObject({ phase: 'running' })
     service.publishGamepads({ gamepad1: gamepad(12.5) })
     await new Promise((resolve) => setImmediate(resolve))
     const update = process.stdin.requests.find(({ command }) => command === 'gamepadUpdate')
@@ -204,6 +209,7 @@ describe('SimulationService', () => {
       leftStickX: 0.5,
       a: true
     })
+    await service.pause()
     await service.advance(1.5)
     expect(process.stdin.requests).toContainEqual(
       expect.objectContaining({ command: 'advance', durationSeconds: 1.5 })
@@ -213,15 +219,14 @@ describe('SimulationService', () => {
   })
 
   it('remains stopping with a live PID until the simulator process exits', async () => {
-    const process = fakeChild('PAUSED', false)
+    const process = fakeChild('INITIALIZED', false)
     const service = new SimulationService(() => process.child, () => undefined, 'linux')
 
-    await service.start({
+    await service.initialize({
       projectDirectory: project(),
       opModeId: 'test.opmode',
       gamepad1: { kind: 'NONE' },
-      gamepad2: { kind: 'NONE' },
-      startPaused: true
+      gamepad2: { kind: 'NONE' }
     })
 
     const stopPromise = service.stop()
@@ -234,7 +239,7 @@ describe('SimulationService', () => {
 
   it('fail-closes a runner-reported FAILED session and permits a clean restart', async () => {
     const failed = fakeChild('FAILED')
-    const restarted = fakeChild('PAUSED')
+    const restarted = fakeChild('INITIALIZED')
     let spawnCount = 0
     const service = new SimulationService(
       () => (spawnCount++ === 0 ? failed.child : restarted.child),
@@ -245,11 +250,10 @@ describe('SimulationService', () => {
       projectDirectory: project(),
       opModeId: 'test.opmode',
       gamepad1: { kind: 'NONE' as const },
-      gamepad2: { kind: 'NONE' as const },
-      startPaused: true
+      gamepad2: { kind: 'NONE' as const }
     }
 
-    const failedStatus = await service.start(config)
+    const failedStatus = await service.initialize(config)
     expect(failedStatus.phase).toBe('error')
     expect(failedStatus.lastError).toEqual({
       code: 'SPIDERKIT_SIM_FAILED',
@@ -259,7 +263,7 @@ describe('SimulationService', () => {
     await new Promise((resolve) => setImmediate(resolve))
     expect(service.getStatus().pid).toBeNull()
 
-    await expect(service.start(config)).resolves.toMatchObject({ phase: 'paused', pid: 123 })
+    await expect(service.initialize(config)).resolves.toMatchObject({ phase: 'initialized', pid: 123 })
     expect(spawnCount).toBe(2)
     service.dispose()
   })
@@ -275,16 +279,17 @@ it.skipIf(!process.env.LOGVUE_SPIDERKIT_PROJECT)(
 
     try {
       await expect(
-        service.start({
+        service.initialize({
           projectDirectory,
           opModeId: opMode.id,
           pluginId: opMode.pluginId,
           gamepad1: { kind: 'NONE' },
           gamepad2: { kind: 'NONE' },
-          rlogPort: 0,
-          startPaused: true
+          rlogPort: 0
         })
-      ).resolves.toMatchObject({ phase: 'paused' })
+      ).resolves.toMatchObject({ phase: 'initialized' })
+      await expect(service.start()).resolves.toMatchObject({ phase: 'running' })
+      await expect(service.pause()).resolves.toMatchObject({ phase: 'paused' })
       const before = performance.now()
       const advanced = await service.advance(1.0)
       expect(advanced).toMatchObject({

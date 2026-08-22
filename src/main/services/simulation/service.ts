@@ -73,7 +73,7 @@ export class SimulationService {
     }
   }
 
-  async start(input: SimulationStartConfig): Promise<SimulationStatus> {
+  async initialize(input: SimulationStartConfig): Promise<SimulationStatus> {
     if (this.child) {
       throw new SpiderKitSimProtocolError('SESSION_ACTIVE', 'A SpiderKit Sim session is already active')
     }
@@ -119,6 +119,12 @@ export class SimulationService {
       }
       throw error
     }
+  }
+
+  async start(): Promise<SimulationStatus> {
+    const status = await this.lifecycle('start')
+    if (this.phase === 'running') this.startStatusPolling()
+    return status
   }
 
   pause(): Promise<SimulationStatus> {
@@ -233,7 +239,7 @@ export class SimulationService {
   }
 
   private async lifecycle(
-    command: 'pause' | 'resume' | 'step' | 'advance',
+    command: 'start' | 'pause' | 'resume' | 'step' | 'advance',
     payload: Record<string, unknown> = {},
     timeoutMs?: number
   ): Promise<SimulationStatus> {
@@ -318,7 +324,9 @@ export class SimulationService {
   private applyRunnerStatus(status: SimulationRunnerStatus): void {
     this.runner = status
     const phase: SimulationPhase =
-      status.state === 'RUNNING'
+      status.state === 'INITIALIZED'
+        ? 'initialized'
+        : status.state === 'RUNNING'
         ? 'running'
         : status.state === 'PAUSED'
           ? 'paused'
@@ -489,7 +497,7 @@ function serveArgs(config: SimulationStartConfig): string[] {
   if (config.rateHz !== undefined) args.push('--rate-hz', String(config.rateHz))
   if (config.staleMs !== undefined) args.push('--stale-ms', String(config.staleMs))
   if (config.rlogPort !== undefined) args.push('--rlog-port', String(config.rlogPort))
-  if (config.startPaused) args.push('--paused')
+  args.push('--init-only')
   return args
 }
 

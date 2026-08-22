@@ -175,7 +175,7 @@ export class SpiderKitSimProtocolClient {
 
 export function validateRunnerStatus(value: unknown): SimulationRunnerStatus {
   if (!isRecord(value)) throw new SpiderKitSimProtocolError('INVALID_STATUS', 'SpiderKit Sim status is missing')
-  if (!['RUNNING', 'PAUSED', 'STOPPED', 'FAILED'].includes(value.state)) {
+  if (!['INITIALIZED', 'RUNNING', 'PAUSED', 'STOPPED', 'FAILED'].includes(value.state)) {
     throw new SpiderKitSimProtocolError('INVALID_STATUS', 'SpiderKit Sim status.state is invalid')
   }
   if (typeof value.id !== 'string' || !value.id) {

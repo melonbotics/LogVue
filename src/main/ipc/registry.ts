@@ -143,7 +143,8 @@ const handlers: Handlers = {
   },
   'simulation:listCatalog': async (projectDirectory) =>
     listSimulationCatalog(projectDirectory),
-  'simulation:start': async (config) => simulationService().start(config),
+  'simulation:init': async (config) => simulationService().initialize(config),
+  'simulation:start': async () => simulationService().start(),
   'simulation:pause': async () => simulationService().pause(),
   'simulation:resume': async () => simulationService().resume(),
   'simulation:step': async (count) => simulationService().step(count),

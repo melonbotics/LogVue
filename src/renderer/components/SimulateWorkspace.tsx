@@ -48,7 +48,6 @@ export default function SimulateWorkspace(): JSX.Element {
   const [controller2, setController2] = useState<number | null>(() =>
     parseStoredControllerIndex(globalThis.localStorage?.getItem(CONTROLLER_2_STORAGE_KEY) ?? null)
   )
-  const [startPaused, setStartPaused] = useState(true)
   const [fastDuration, setFastDuration] = useState(
     () => globalThis.localStorage?.getItem('logvue.sim.fastDuration') ?? '1.0'
   )
@@ -67,7 +66,7 @@ export default function SimulateWorkspace(): JSX.Element {
 
   const phase = status?.phase ?? 'idle'
   const sessionActive = Boolean(status?.pid)
-    || ['starting', 'running', 'paused', 'stopping'].includes(phase)
+    || ['starting', 'initialized', 'running', 'paused', 'stopping'].includes(phase)
   const configLocked = sessionActive
 
   const reportError = useCallback((title: string, error: unknown): void => {
@@ -146,7 +145,6 @@ export default function SimulateWorkspace(): JSX.Element {
     hydratedPid.current = status.pid
     setGamepad1Source(status.config.gamepad1)
     setGamepad2Source(status.config.gamepad2)
-    setStartPaused(status.config.startPaused ?? false)
     setRateHz(String(status.config.rateHz ?? DEFAULT_RATE_HZ))
     setRlogPort(String(status.config.rlogPort ?? Number(DEFAULT_RLOG_PORT)))
     setSelectedProgram({
@@ -301,7 +299,7 @@ export default function SimulateWorkspace(): JSX.Element {
     }
   }
 
-  const startSession = async (): Promise<void> => {
+  const initializeSession = async (): Promise<void> => {
     const requestedRateHz = Number(rateHz)
     if (!Number.isFinite(requestedRateHz) || requestedRateHz < 1 || requestedRateHz > 1000) {
       reportError('Invalid simulation setup', 'Update rate must be from 1 to 1000 Hz.')
@@ -323,10 +321,10 @@ export default function SimulateWorkspace(): JSX.Element {
       return
     }
     if (!project || !selected) return
-    setBusy('start')
+    setBusy('init')
     try {
       setStatus(
-        await api.simulation.start({
+        await api.simulation.init({
           projectDirectory: project.projectDirectory,
           opModeId: selected.id,
           pluginId: selected.pluginId,
@@ -335,12 +333,11 @@ export default function SimulateWorkspace(): JSX.Element {
           gamepad2: gamepad2Source,
           rateHz: requestedRateHz,
           staleMs: DEFAULT_STALE_MS,
-          rlogPort: Number(rlogPort),
-          startPaused
+          rlogPort: Number(rlogPort)
         })
       )
     } catch (error) {
-      reportError('Could not start simulation', error)
+      reportError('Could not initialize simulation', error)
     } finally {
       setBusy(null)
     }
@@ -383,6 +380,35 @@ export default function SimulateWorkspace(): JSX.Element {
     ?? 1 / (Number.isFinite(selectedRateHz) && selectedRateHz > 0
       ? selectedRateHz
       : DEFAULT_RATE_HZ)
+  const primaryControlLabel = busy === 'init'
+    ? 'Initializing…'
+    : busy === 'start'
+      ? 'Starting…'
+      : phase === 'initialized'
+        ? 'Start'
+        : phase === 'running'
+          ? 'Pause'
+          : phase === 'paused'
+            ? 'Run'
+            : phase === 'starting'
+              ? 'Initializing…'
+              : phase === 'stopping'
+                ? 'Stopping…'
+                : 'Init'
+  const primaryControlDisabled = busy !== null
+    || (sessionActive && !['initialized', 'running', 'paused'].includes(phase))
+
+  const runPrimaryControl = (): void => {
+    if (!sessionActive) {
+      void initializeSession()
+    } else if (phase === 'initialized') {
+      void command('start', api.simulation.start)
+    } else if (phase === 'running') {
+      void command('pause', api.simulation.pause)
+    } else if (phase === 'paused') {
+      void command('resume', api.simulation.resume)
+    }
+  }
 
   return (
     <div className="simulate-workspace">
@@ -488,7 +514,7 @@ export default function SimulateWorkspace(): JSX.Element {
                       max="1000"
                       step="1"
                       value={rateHz}
-                      disabled={configLocked || busy === 'start'}
+                      disabled={configLocked || busy === 'init'}
                       onChange={(event) => setRateHz(event.target.value)}
                     />
                     <div className="sim-project-actions">
@@ -533,7 +559,7 @@ export default function SimulateWorkspace(): JSX.Element {
                   controllers={controllers}
                   lastActivatedIndex={lastActivatedIndex}
                   gamepadsSupported={gamepadsSupported}
-                  sourceLocked={configLocked || busy === 'start'}
+                  sourceLocked={configLocked || busy === 'init'}
                   onSource={setGamepad1Source}
                   onController={setController1}
                   onPickRlog={() => void chooseRlog(1)}
@@ -545,7 +571,7 @@ export default function SimulateWorkspace(): JSX.Element {
                   controllers={controllers}
                   lastActivatedIndex={lastActivatedIndex}
                   gamepadsSupported={gamepadsSupported}
-                  sourceLocked={configLocked || busy === 'start'}
+                  sourceLocked={configLocked || busy === 'init'}
                   onSource={setGamepad2Source}
                   onController={setController2}
                   onPickRlog={() => void chooseRlog(2)}
@@ -577,7 +603,7 @@ export default function SimulateWorkspace(): JSX.Element {
                     max="65535"
                     step="1"
                     value={rlogPort}
-                    disabled={configLocked || busy === 'start'}
+                    disabled={configLocked || busy === 'init'}
                     onChange={(event) => setRlogPort(event.target.value)}
                   />
                   <span className="sim-field-help">
@@ -606,78 +632,40 @@ export default function SimulateWorkspace(): JSX.Element {
                   </div>
                 </div>
                 <div className="sim-controls">
-                  {!sessionActive ? (
-                    <button
-                      type="button"
-                      className="primary-control"
-                      disabled={busy !== null}
-                      onClick={() => void startSession()}
-                    >
-                      {busy === 'start' ? 'Starting…' : 'Start session'}
-                    </button>
-                  ) : (
-                    <>
-                      {phase === 'running' ? (
-                        <button
-                          type="button"
-                          className="primary-control"
-                          disabled={busy !== null}
-                          onClick={() => void command('pause', api.simulation.pause)}
-                        >
-                          Pause
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="primary-control"
-                          disabled={busy !== null || phase !== 'paused'}
-                          onClick={() => void command('resume', api.simulation.resume)}
-                        >
-                          Run
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="ghost sm"
-                        disabled={busy !== null || phase !== 'paused'}
-                        onClick={() => void command('step', () => api.simulation.step(1))}
-                      >
-                        Step
-                      </button>
-                      <button
-                        type="button"
-                        className="ghost sm"
-                        disabled={busy !== null || phase !== 'paused'}
-                        onClick={() => void advanceFast()}
-                      >
-                        {busy === 'advance' ? 'Advancing…' : 'Run fast'}
-                      </button>
-                      <button
-                        type="button"
-                        className="ghost sm"
-                        disabled={busy !== null}
-                        onClick={() => void command('stop', api.simulation.stop)}
-                      >
-                        {busy === 'stop' ? 'Stopping…' : 'Stop'}
-                      </button>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    className="ghost sm sim-stop-control"
+                    disabled={!sessionActive || busy !== null}
+                    onClick={() => void command('stop', api.simulation.stop)}
+                  >
+                    {busy === 'stop' ? 'Stopping…' : 'Stop'}
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-control sim-primary-control"
+                    disabled={primaryControlDisabled}
+                    onClick={runPrimaryControl}
+                  >
+                    {primaryControlLabel}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost sm sim-step-control"
+                    disabled={busy !== null || phase !== 'paused'}
+                    onClick={() => void command('step', () => api.simulation.step(1))}
+                  >
+                    Step
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost sm sim-fast-control"
+                    disabled={busy !== null || phase !== 'paused'}
+                    onClick={() => void advanceFast()}
+                  >
+                    {busy === 'advance' ? 'Advancing…' : 'Run fast'}
+                  </button>
                 </div>
               </div>
-              {!sessionActive && (
-                <label className="sim-start-option">
-                  <input
-                    type="checkbox"
-                    checked={startPaused}
-                    disabled={busy !== null}
-                    onChange={(event) => setStartPaused(event.target.checked)}
-                  />
-                  <span>
-                    <strong>Start paused</strong>
-                    <small>Inspect the initialized robot, then step once or press Run.</small>
-                  </span>
-                </label>
-              )}
             </div>
           </section>
 

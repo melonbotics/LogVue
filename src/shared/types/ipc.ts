@@ -100,7 +100,8 @@ export interface IpcApi {
   'simulation:discoverProject': (projectDirectory: string) => Promise<SimulationProject>
   'simulation:buildProject': (projectDirectory: string) => Promise<SimulationBuildResult>
   'simulation:listCatalog': (projectDirectory: string) => Promise<SimulationCatalog>
-  'simulation:start': (config: SimulationStartConfig) => Promise<SimulationStatus>
+  'simulation:init': (config: SimulationStartConfig) => Promise<SimulationStatus>
+  'simulation:start': () => Promise<SimulationStatus>
   'simulation:pause': () => Promise<SimulationStatus>
   'simulation:resume': () => Promise<SimulationStatus>
   'simulation:step': (count?: number) => Promise<SimulationStatus>

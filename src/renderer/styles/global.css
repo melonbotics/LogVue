@@ -395,6 +395,13 @@ input[type="checkbox"] {
   background: var(--warn);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 14%, transparent);
 }
+.tab.sim-session-active.initialized:not(.active) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.tab.sim-session-active.initialized .sim-tab-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
 
 /* ── adb status badge ─────────────────────────────────────── */
 .status {
@@ -692,6 +699,13 @@ input[type="checkbox"] {
 }
 .sim-state-badge.starting .dot,
 .sim-state-badge.building .dot {
+  background: var(--accent);
+}
+.sim-state-badge.initialized {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+}
+.sim-state-badge.initialized .dot {
   background: var(--accent);
 }
 .sim-state-badge.error {
@@ -994,40 +1008,13 @@ input[type="checkbox"] {
   font-size: 0.7rem;
 }
 .sim-controls {
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: 88px 104px;
   gap: 7px;
-  flex-wrap: wrap;
 }
-.sim-controls .primary-control {
-  min-width: 76px;
-}
-.sim-start-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  color: var(--text);
-  cursor: pointer;
-}
-.sim-start-option input {
-  margin-top: 2px;
-}
-.sim-start-option span {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.sim-start-option strong {
-  font-size: 0.74rem;
-  font-weight: 650;
-}
-.sim-start-option small {
-  color: var(--muted);
-  font-size: 0.68rem;
-  line-height: 1.4;
+.sim-controls button {
+  width: 100%;
+  height: 34px;
 }
 .sim-metrics {
   display: flex;
