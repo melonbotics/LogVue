@@ -390,31 +390,25 @@ export default function SimulateWorkspace(): JSX.Element {
       <div className="sim-grid">
         <div className="sim-column">
           <section className="sim-card">
-            <div className="sim-card-header">
-              <div>
-                <h2>Robot project</h2>
+            <div className="sim-card-header sim-project-header">
+              <h2>Robot project</h2>
+              <div className="sim-project-picker">
+                {configLocked && <span className="sim-lock">Locked for this session</span>}
+                <div className="sim-path-value" title={projectDirectory}>
+                  {projectDirectory || 'No robot project selected'}
+                </div>
+                <button
+                  type="button"
+                  className="ghost sm"
+                  disabled={configLocked || busy !== null}
+                  onClick={() => void chooseProject()}
+                >
+                  Choose…
+                </button>
               </div>
-              {configLocked && <span className="sim-lock">Locked for this session</span>}
             </div>
             <div className="sim-card-body">
               <div className="sim-form-grid">
-                <div className="sim-field full">
-                  <label>Project directory</label>
-                  <div className="sim-path-row">
-                    <div className="sim-path-value" title={projectDirectory}>
-                      {projectDirectory || 'No robot project selected'}
-                    </div>
-                    <button
-                      type="button"
-                      className="ghost sm"
-                      disabled={configLocked || busy !== null}
-                      onClick={() => void chooseProject()}
-                    >
-                      Choose…
-                    </button>
-                  </div>
-                </div>
-
                 {displayedProject && (
                   <div className="sim-field full">
                     <div className="sim-project-summary">

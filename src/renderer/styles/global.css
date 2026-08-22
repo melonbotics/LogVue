@@ -696,6 +696,23 @@ input[type="checkbox"] {
   color: var(--muted);
   font-size: 0.74rem;
 }
+.sim-project-header h2 {
+  white-space: nowrap;
+}
+.sim-project-picker {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.sim-project-picker .sim-lock {
+  margin-left: 0;
+}
+.sim-project-picker .sim-path-value {
+  flex: 0 1 360px;
+}
 .sim-card-body {
   padding: 16px;
 }
