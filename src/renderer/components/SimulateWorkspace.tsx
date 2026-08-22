@@ -456,8 +456,6 @@ export default function SimulateWorkspace(): JSX.Element {
                         key={programSelectionKey({ pluginId: opMode.pluginId, opModeId: opMode.id })}
                         value={programSelectionKey({ pluginId: opMode.pluginId, opModeId: opMode.id })}
                       >
-                        {catalog.plugins.find(({ id }) => id === opMode.pluginId)?.name ?? opMode.pluginId}
-                        {' · '}
                         {opMode.group ? `${opMode.group} · ` : ''}
                         {opMode.name}
                       </option>
