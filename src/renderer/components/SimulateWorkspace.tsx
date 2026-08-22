@@ -479,7 +479,7 @@ export default function SimulateWorkspace(): JSX.Element {
                   </span>
                 </div>
                 <div className="sim-field sim-project-rate-field">
-                  <label htmlFor="sim-update-rate">Update rate</label>
+                  <label htmlFor="sim-update-rate">Update rate (Hz)</label>
                   <div className="sim-project-rate-row">
                     <input
                       id="sim-update-rate"
@@ -512,9 +512,6 @@ export default function SimulateWorkspace(): JSX.Element {
                       )}
                     </div>
                   </div>
-                  <span className="sim-field-help">
-                    Fixed simulation ticks per second; 50 Hz gives a 20 ms timestep.
-                  </span>
                 </div>
               </div>
             </div>
