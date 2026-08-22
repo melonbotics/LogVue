@@ -780,13 +780,16 @@ input[type="checkbox"] {
   background: var(--bg);
 }
 .sim-project-name {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   font-size: 0.82rem;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.sim-project-summary > .pill {
+  margin-left: auto;
 }
 .sim-project-info {
   width: 20px;
