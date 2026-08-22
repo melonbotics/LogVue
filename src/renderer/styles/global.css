@@ -219,6 +219,20 @@ input[type="checkbox"] {
   align-items: center;
   justify-content: center;
 }
+.view-switch .tabs {
+  box-sizing: border-box;
+  height: 30px;
+  padding: 2px;
+}
+.view-switch .tab {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding-block: 0;
+}
+.toolbar-right > button.ghost.sm {
+  height: 30px;
+}
 @media (max-width: 900px) {
   .toolbar {
     grid-template-columns: minmax(0, 1fr) auto;
