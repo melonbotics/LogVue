@@ -1,6 +1,6 @@
 import { chmodSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, win32 } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   buildSimulationProject,
@@ -99,6 +99,21 @@ describe('SpiderKit simulation project manifest', () => {
     expect(() => resolveCommand(root, ['../outside'], 'linux')).toThrowError(
       expect.objectContaining<Partial<SimulationProjectError>>({ code: 'PATH_OUTSIDE_PROJECT' })
     )
+  })
+
+  it('resolves a Windows manifest java command to the discovered absolute executable', () => {
+    const root = project()
+    const home = String.raw`C:\Android\jbr`
+    const javaExecutable = win32.join(home, 'bin', 'java.exe')
+
+    expect(
+      resolveCommand(root, ['java.exe', '-version'], 'windows', {
+        home,
+        javaExecutable,
+        javacExecutable: win32.join(home, 'bin', 'javac.exe'),
+        majorVersion: 17
+      })
+    ).toEqual({ executable: javaExecutable, args: ['-version'] })
   })
 
   it('streams complete build output lines while retaining captured output', async () => {

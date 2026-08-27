@@ -16,6 +16,14 @@ import {
   SPIDER_KIT_SIM_PROTOCOL,
   SPIDER_KIT_SIM_PROTOCOL_VERSION
 } from '../../../shared/types/simulation'
+import { SimulationProjectError } from './errors'
+import {
+  createJavaEnvironment,
+  discoverJavaRuntime,
+  type JavaRuntime
+} from './javaRuntime'
+
+export { SimulationProjectError } from './errors'
 
 const MAX_MANIFEST_BYTES = 64 * 1024
 const MAX_COMMAND_OUTPUT_BYTES = 2 * 1024 * 1024
@@ -23,16 +31,6 @@ const COMMAND_TIMEOUT_MS = 120_000
 
 export interface SimulationBuildHooks {
   onOutput?: (stream: 'stdout' | 'stderr', line: string) => void
-}
-
-export class SimulationProjectError extends Error {
-  constructor(
-    readonly code: string,
-    message: string
-  ) {
-    super(message)
-    this.name = 'SimulationProjectError'
-  }
 }
 
 export function simulationPlatform(platform: NodeJS.Platform = process.platform): SimulationPlatform {
@@ -181,7 +179,8 @@ export interface ExactSpawnCommand {
 export function resolveCommand(
   projectDirectory: string,
   command: string[],
-  platform: SimulationPlatform = simulationPlatform()
+  platform: SimulationPlatform = simulationPlatform(),
+  javaRuntime?: JavaRuntime
 ): ExactSpawnCommand {
   if (!command.length) throw new SimulationProjectError('INVALID_COMMAND', 'Command cannot be empty')
   const first = command[0]
@@ -190,6 +189,10 @@ export function resolveCommand(
       'UNSUPPORTED_EXECUTABLE',
       'Windows batch wrappers are not supported; use an exact direct command such as java.exe'
     )
+  }
+  if (platform === 'windows' && isJavaExecutable(first)) {
+    const runtime = javaRuntime ?? discoverJavaRuntime(projectDirectory)
+    return { executable: runtime.javaExecutable, args: command.slice(1) }
   }
   const projectCandidate = isBareExecutable(first) ? join(projectDirectory, first) : null
   let executable: string
@@ -214,9 +217,13 @@ export function spawnCommand(
   cwd: string,
   platform: SimulationPlatform = simulationPlatform()
 ): ChildProcessWithoutNullStreams {
-  const exact = resolveCommand(projectDirectory, command, platform)
+  const runtime = platform === 'windows' && isJavaExecutable(command[0])
+    ? discoverJavaRuntime(projectDirectory)
+    : undefined
+  const exact = resolveCommand(projectDirectory, command, platform, runtime)
   return spawn(exact.executable, exact.args, {
     cwd,
+    env: runtime ? createJavaEnvironment(runtime) : { ...process.env },
     stdio: ['pipe', 'pipe', 'pipe'],
     shell: false,
     windowsHide: true
@@ -449,6 +456,10 @@ async function runCaptured(
 
 function isBareExecutable(value: string): boolean {
   return /^[A-Za-z0-9_.+-]+$/.test(value) && !value.includes('/') && !value.includes('\\')
+}
+
+function isJavaExecutable(value: string): boolean {
+  return /^(?:java|java\.exe)$/i.test(value)
 }
 
 function lastUsefulLine(value: string): string {
