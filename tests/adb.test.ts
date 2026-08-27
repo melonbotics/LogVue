@@ -84,21 +84,21 @@ describe('parseLsOutput', () => {
 describe('parseFindOutput', () => {
   it('keeps absolute paths and drops blanks/noise', () => {
     const out = [
-      '/sdcard/FIRST/PsiKit/AutoOpMode_log_20260704_115005_104.rlog',
+      '/sdcard/FIRST/SpiderKit/AutoOpMode_log_20260704_115005_104.rlog',
       '',
-      '/sdcard/FIRST/PsiKit/TeleOp_log_20260704_115327_882.rlog',
+      '/sdcard/FIRST/SpiderKit/TeleOp_log_20260704_115327_882.rlog',
       'find: permission denied'
     ].join('\n')
     expect(parseFindOutput(out)).toEqual([
-      '/sdcard/FIRST/PsiKit/AutoOpMode_log_20260704_115005_104.rlog',
-      '/sdcard/FIRST/PsiKit/TeleOp_log_20260704_115327_882.rlog'
+      '/sdcard/FIRST/SpiderKit/AutoOpMode_log_20260704_115005_104.rlog',
+      '/sdcard/FIRST/SpiderKit/TeleOp_log_20260704_115327_882.rlog'
     ])
   })
 })
 
 describe('remoteBasename', () => {
   it('takes the last path segment', () => {
-    expect(remoteBasename('/sdcard/FIRST/PsiKit/x.rlog')).toBe('x.rlog')
+    expect(remoteBasename('/sdcard/FIRST/SpiderKit/x.rlog')).toBe('x.rlog')
     expect(remoteBasename('x.rlog')).toBe('x.rlog')
   })
 })
@@ -178,12 +178,12 @@ describe('FakeAdbClient', () => {
       expect(files).toEqual(
         expect.arrayContaining([
           {
-            remote_path: '/sdcard/FIRST/PsiKit/Auto_log_20260704_115005_104.rlog',
+            remote_path: '/sdcard/FIRST/SpiderKit/Auto_log_20260704_115005_104.rlog',
             filename: 'Auto_log_20260704_115005_104.rlog',
             file_size_bytes: 4
           },
           {
-            remote_path: '/sdcard/FIRST/PsiKit/nested/TeleOp_log_20260704_115327_882.rlog',
+            remote_path: '/sdcard/FIRST/SpiderKit/nested/TeleOp_log_20260704_115327_882.rlog',
             filename: 'TeleOp_log_20260704_115327_882.rlog',
             file_size_bytes: 6
           }
@@ -202,7 +202,7 @@ describe('FakeAdbClient', () => {
       const dest = join(destDir, 'Drive_log_1.rlog')
       writeFileSync(source, 'log')
 
-      await new FakeAdbClient(root).pull('/sdcard/FIRST/PsiKit/Drive_log_1.rlog', dest)
+      await new FakeAdbClient(root).pull('/sdcard/FIRST/SpiderKit/Drive_log_1.rlog', dest)
 
       expect(existsSync(dest)).toBe(true)
       expect(readFileSync(dest, 'utf-8')).toBe('log')

@@ -1,5 +1,5 @@
 /** Where the Control Hub keeps its `.rlog` files (spec §7.2). */
-export const RLOG_ROOT = '/sdcard/FIRST/PsiKit'
+export const RLOG_ROOT = '/sdcard/FIRST/SpiderKit'
 
 /** Extension we treat as a hub log. */
 export const RLOG_EXT = '.rlog'

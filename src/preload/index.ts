@@ -24,6 +24,15 @@ const api: Api = {
   },
   onTaskUpdate(handler) {
     return subscribe('tasks:update', handler)
+  },
+  onSimulationStatus(handler) {
+    return subscribe('simulation:status', handler)
+  },
+  onSimulationStderr(handler) {
+    return subscribe('simulation:stderr', handler)
+  },
+  publishSimulationGamepads(frame) {
+    ipcRenderer.send('simulation:gamepads', frame)
   }
 }
 

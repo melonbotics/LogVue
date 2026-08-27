@@ -12,7 +12,7 @@
 
 import type { ImportRequest } from './import'
 
-export type TaskKind = 'import' | 'reindex' | 'ftcscout' | 'adb'
+export type TaskKind = 'import' | 'reindex' | 'ftcscout' | 'adb' | 'simulation'
 
 export type TaskStatus = 'running' | 'success' | 'error'
 

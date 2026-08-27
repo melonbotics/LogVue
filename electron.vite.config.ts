@@ -11,7 +11,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve('src/main/index.ts')
+          index: resolve('src/main/index.ts'),
+          agentOpModeWorker: resolve('src/main/services/opmode/worker.ts')
         }
       }
     }

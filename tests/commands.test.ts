@@ -84,7 +84,7 @@ describe('archive commands', () => {
       adb as unknown as AdbLike,
       root,
       {
-        remotePath: '/sdcard/FIRST/PsiKit/Test_log_1.rlog',
+        remotePath: '/sdcard/FIRST/SpiderKit/Test_log_1.rlog',
         filename: 'Test_log_1.rlog',
         fileSize: 3,
         sessionPath: session.path,
@@ -126,7 +126,7 @@ describe('archive commands', () => {
         adb as unknown as AdbLike,
         root,
         {
-          remotePath: '/sdcard/FIRST/PsiKit/Failed_log_1.rlog',
+          remotePath: '/sdcard/FIRST/SpiderKit/Failed_log_1.rlog',
           filename: 'Failed_log_1.rlog',
           fileSize: 3,
           sessionPath: session.path,

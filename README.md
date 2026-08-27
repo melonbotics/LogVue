@@ -14,9 +14,11 @@ LogVue is a desktop app for organising and reviewing FTC Control Hub RLOG files.
 - Supports searching by op-mode, alliance, tags, filenames, and other session details.
 - Adds match metadata, tags, and rich-text notes to sessions.
 - Links notes directly to logs so an observation can highlight the relevant file.
+- Discovers and controls SpiderKit desktop simulations from a robot project's
+  `spiderkit-sim.json` manifest.
 - Syncs event and match data from FTCScout.
 - Keeps session metadata and notes in filesystem-readable `session.json` and `notes.md` sidecars for agentic browsing.
-- Provides MCP tools for live Control Hub status, log discovery, session creation, and managed importing.
+- Provides MCP tools for live Control Hub status, log discovery, session creation, managed importing, and explicitly operator-gated FTC OpMode control.
 
 ## Agentic support
 
@@ -43,6 +45,24 @@ Mention a log from the Notes editor with `@`. Selecting the mention brings the m
 <p align="center">
   <img src="docs/images/notes-log-highlight.png" width="1200" alt="Log highlighted from a note">
 </p>
+
+### Simulate an OpMode
+
+Choose a robot repository containing `spiderkit-sim.json`. LogVue can run its declared build,
+discover the packaged SpiderKit plugins and OpModes, and control a simulation over the
+`spiderkit-sim-opmode` protocol. The robot-local runner remains responsible for lifecycle, pacing,
+plants, and logging; LogVue is the operator UI and live gamepad source.
+
+Use **Build** after selecting a fresh robot checkout and again after changing robot or SpiderKit
+code. LogVue itself may be running from `npm run dev`; the generated distribution belongs to the
+selected robot repository, not to the LogVue installation.
+
+Continuous Run is always real-time, which suits a human driving with a LIVE gamepad. For agent
+tests, RLOG-driven sessions, and batch log generation, set an absolute simulation timestamp and use
+**Run fast** directly. LogVue initializes a fresh worker when needed; SpiderKit crosses the START
+edge, executes the exact fixed-dt ticks without wall-clock pacing, and returns paused only after the
+corresponding RLOG frames are complete. **Run fast** can then continue that paused worker to a later
+timestamp.
 
 ## Development
 

@@ -14,7 +14,10 @@ export const api = {
   getInfo: () => window.api.invoke('app:getInfo'),
   openThirdPartyNotices: () => window.api.invoke('app:openThirdPartyNotices'),
   mcp: {
-    status: () => window.api.invoke('mcp:status')
+    status: () => window.api.invoke('mcp:status'),
+    agentOpModeStatus: () => window.api.invoke('mcp:agentOpModeStatus'),
+    setAgentOpModeControlEnabled: (enabled: boolean) =>
+      window.api.invoke('mcp:setAgentOpModeControlEnabled', enabled)
   },
   settings: {
     get: () => window.api.invoke('settings:get'),
@@ -31,6 +34,38 @@ export const api = {
       window.api.invoke('settings:setFolderTimeOffsetMinutes', minutes),
     setConfirmDeletePopulatedSessions: (confirm: boolean) =>
       window.api.invoke('settings:setConfirmDeletePopulatedSessions', confirm)
+  },
+  simulation: {
+    getStatus: () => window.api.invoke('simulation:getStatus'),
+    pickProject: () => window.api.invoke('simulation:pickProject'),
+    pickRlog: () => window.api.invoke('simulation:pickRlog'),
+    reportError: (title: string, message: string) =>
+      window.api.invoke('simulation:reportError', title, message),
+    discoverProject: (projectDirectory: string) =>
+      window.api.invoke('simulation:discoverProject', projectDirectory),
+    buildProject: (projectDirectory: string) =>
+      window.api.invoke('simulation:buildProject', projectDirectory),
+    listCatalog: (projectDirectory: string) =>
+      window.api.invoke('simulation:listCatalog', projectDirectory),
+    init: (config: import('@shared/types/simulation').SimulationStartConfig) =>
+      window.api.invoke('simulation:init', config),
+    start: () => window.api.invoke('simulation:start'),
+    pause: () => window.api.invoke('simulation:pause'),
+    resume: () => window.api.invoke('simulation:resume'),
+    step: (count = 1) => window.api.invoke('simulation:step', count),
+    advance: (durationSeconds: number) =>
+      window.api.invoke('simulation:advance', durationSeconds),
+    runUntil: (
+      config: import('@shared/types/simulation').SimulationStartConfig | null,
+      targetTimeSeconds: number
+    ) => window.api.invoke('simulation:runUntil', config, targetTimeSeconds),
+    stop: () => window.api.invoke('simulation:stop'),
+    onStatus: (handler: Parameters<typeof window.api.onSimulationStatus>[0]) =>
+      window.api.onSimulationStatus(handler),
+    onStderr: (handler: Parameters<typeof window.api.onSimulationStderr>[0]) =>
+      window.api.onSimulationStderr(handler),
+    publishGamepads: (frame: import('@shared/types/simulation').SimulationGamepadFrame) =>
+      window.api.publishSimulationGamepads(frame)
   },
   archive: {
     tree: () => window.api.invoke('archive:tree'),

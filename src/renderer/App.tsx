@@ -9,6 +9,7 @@ import SessionTree from './components/SessionTree'
 import SessionDetails from './components/SessionDetails'
 import LogDashboard from './components/LogDashboard'
 import HubLogTable from './components/HubLogTable'
+import SimulateWorkspace from './components/SimulateWorkspace'
 import EmptyState from './components/EmptyState'
 import NewSessionDialog from './components/NewSessionDialog'
 import SettingsDialog from './components/SettingsDialog'
@@ -77,7 +78,6 @@ export default function App(): JSX.Element {
     <div className="shell">
       <Toolbar
         settings={settings}
-        onNewTopLevel={() => setNewParent({ path: settings.archiveRoot as string, label: 'Library' })}
         onSettings={() => setShowSettings(true)}
         onMcpSetup={() => setShowMcpSetup(true)}
       />
@@ -86,9 +86,17 @@ export default function App(): JSX.Element {
         <main className="pane detail-pane">
           <HubLogTable />
         </main>
+      ) : view === 'simulate' ? (
+        <main className="pane detail-pane simulate-pane">
+          <SimulateWorkspace />
+        </main>
       ) : (
         <>
-          <QuickFindBar />
+          <QuickFindBar
+            onNewTopLevel={() =>
+              setNewParent({ path: settings.archiveRoot as string, label: 'Library' })
+            }
+          />
           <div className="panes">
             <aside className="pane tree-pane">
               <SessionTree />
@@ -117,7 +125,7 @@ export default function App(): JSX.Element {
       )}
       {showSettings && <SettingsDialog settings={settings} onClose={() => setShowSettings(false)} />}
       {showMcpSetup && (
-        <McpSetupDialog archiveRoot={settings.archiveRoot} onClose={() => setShowMcpSetup(false)} />
+        <McpSetupDialog settings={settings} onClose={() => setShowMcpSetup(false)} />
       )}
       <ActivityToasts />
     </div>

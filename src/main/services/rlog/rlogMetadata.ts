@@ -1,13 +1,13 @@
 import { closeSync, openSync, readSync } from 'fs'
 
 /**
- * Extracts the metadata map from the head of a PsiKit RLOG R2 file.
+ * Extracts the metadata map from the head of a SpiderKit RLOG R2 file.
  *
  * `Logger.recordMetadata()` values are written as ordinary string records under
  * the `/Metadata/` subtable during the first
  * log cycle, so only the head of the file needs decoding — never the full log.
  *
- * On-disk format (see PsiKit `RLOGEncoder`): byte 0 is the log revision (2),
+ * On-disk format (see SpiderKit `RLOGEncoder`): byte 0 is the log revision (2),
  * then a stream of records, each prefixed with a 1-byte type:
  *   0x00 [double timestamp]                          — cycle delimiter
  *   0x01 [i16 keyId][u16 len][key][u16 len][type]    — key definition

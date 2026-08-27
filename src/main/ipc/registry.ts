@@ -17,7 +17,19 @@ import { getAdbClient, refreshAdbClient } from '../services/adb/runtime'
 import { FtcScoutClient } from '../services/ftcscout/FtcScoutClient'
 import { startArchiveWatcher } from '../services/watcher/Watcher'
 import { getMcpStatus, refreshMcpDiscoveryFile } from '../mcp/server'
+import {
+  getAgentOpModeLeaseStatus,
+  refreshAgentOpModeTarget,
+  setAgentOpModeControlEnabled
+} from '../services/opmode/service'
 import { listTasks, startTask } from '../services/tasks/TaskService'
+import {
+  buildSimulationProject,
+  discoverSimulationProject,
+  listSimulationCatalog
+} from '../services/simulation/project'
+import { getSimulationService } from '../services/simulation/service'
+import { emitIpcEvent } from './events'
 import { runImportTask, runNewSessionImportTask, runSingleImportTask } from '../services/import/importTask'
 import {
   createSessionCommand,
@@ -30,6 +42,10 @@ import {
 } from '../commands'
 
 const ftcScout = new FtcScoutClient()
+
+function simulationService() {
+  return getSimulationService(emitIpcEvent)
+}
 
 /** Every channel in the contract must have exactly one handler here. */
 type Handlers = {
@@ -57,8 +73,90 @@ const handlers: Handlers = {
     if (error) throw new Error(error)
   },
 
+  // ── SpiderKit simulation ──
+  'simulation:getStatus': async () => simulationService().getStatus(),
+  'simulation:pickProject': async () => {
+    const win = BrowserWindow.getFocusedWindow() ?? undefined
+    const result = await dialog.showOpenDialog(win!, {
+      title: 'Choose robot simulation project',
+      properties: ['openDirectory']
+    })
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
+  },
+  'simulation:pickRlog': async () => {
+    const win = BrowserWindow.getFocusedWindow() ?? undefined
+    const result = await dialog.showOpenDialog(win!, {
+      title: 'Choose gamepad RLOG',
+      properties: ['openFile'],
+      filters: [{ name: 'RLOG files', extensions: ['rlog'] }]
+    })
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
+  },
+  'simulation:reportError': async (title, message) => {
+    const task = startTask({
+      kind: 'simulation',
+      title: boundedTaskText(title, 'Simulation error', 120),
+      determinate: false
+    })
+    task.fail(boundedTaskText(message, 'Unknown simulation error', 2_000))
+  },
+  'simulation:discoverProject': async (projectDirectory) =>
+    discoverSimulationProject(projectDirectory),
+  'simulation:buildProject': async (projectDirectory) => {
+    const project = discoverSimulationProject(projectDirectory)
+    const task = startTask({
+      kind: 'simulation',
+      title: `Building ${project.manifest.name}`,
+      subtitle: 'Gradle · robot-local simulator'
+    })
+    task.setItems([
+      { id: 'build', label: 'Build simulator', bytes: null },
+      { id: 'catalog', label: 'Discover catalog', bytes: null }
+    ])
+    task.itemStatus('build', 'active', 'Starting Gradle…')
+    let stage: 'build' | 'catalog' = 'build'
+    try {
+      const result = await buildSimulationProject(projectDirectory, project.platform, {
+        onOutput: (_stream, line) => {
+          const detail = usefulBuildLine(line)
+          if (detail) task.itemDetail('build', detail)
+        }
+      })
+      task.itemStatus('build', 'done', 'complete')
+      stage = 'catalog'
+      task.patch({ title: `Discovering ${project.manifest.name}` })
+      task.itemStatus('catalog', 'active', 'Reading plugins and OpModes…')
+      const catalog = await listSimulationCatalog(projectDirectory, project.platform)
+      task.itemStatus(
+        'catalog',
+        'done',
+        `${catalog.plugins.length} plugins · ${catalog.opModes.length} OpModes`
+      )
+      task.patch({ title: `Built ${project.manifest.name}` })
+      task.succeed(`${catalog.opModes.length} OpModes discovered`)
+      return { ...result, catalog }
+    } catch (error) {
+      task.itemStatus(stage, 'failed', error instanceof Error ? error.message : String(error))
+      task.fail(error)
+      throw error
+    }
+  },
+  'simulation:listCatalog': async (projectDirectory) =>
+    listSimulationCatalog(projectDirectory),
+  'simulation:init': async (config) => simulationService().initialize(config),
+  'simulation:start': async () => simulationService().start(),
+  'simulation:pause': async () => simulationService().pause(),
+  'simulation:resume': async () => simulationService().resume(),
+  'simulation:step': async (count) => simulationService().step(count),
+  'simulation:advance': async (durationSeconds) => simulationService().advance(durationSeconds),
+  'simulation:runUntil': async (config, targetTimeSeconds) =>
+    simulationService().runUntil(config, targetTimeSeconds),
+  'simulation:stop': async () => simulationService().stop(),
+
   // ── MCP ──
   'mcp:status': async () => getMcpStatus(),
+  'mcp:agentOpModeStatus': async () => getAgentOpModeLeaseStatus(),
+  'mcp:setAgentOpModeControlEnabled': async (enabled) => setAgentOpModeControlEnabled(enabled),
 
   // ── settings / archive root ──
   'settings:get': async () => getSettings(),
@@ -84,6 +182,7 @@ const handlers: Handlers = {
     if (!trimmed) throw new Error('Enter an ADB address before saving')
     const next = saveSettings({ adbAddress: trimmed })
     refreshAdbClient()
+    await refreshAgentOpModeTarget()
     return next
   },
   'settings:pickHubLogFolder': async () => {
@@ -97,6 +196,7 @@ const handlers: Handlers = {
   'settings:setHubDataSource': async (source) => {
     const next = saveSettings({ hubDataSource: source })
     refreshAdbClient()
+    await refreshAgentOpModeTarget()
     return next
   },
   'settings:setHubLogFolder': async (path) => {
@@ -256,4 +356,24 @@ export function registerIpcHandlers(): void {
     const handler = handlers[channel] as (...args: unknown[]) => unknown
     ipcMain.handle(channel, (_event, ...args) => handler(...args))
   }
+  ipcMain.on('simulation:gamepads', (_event, frame) => {
+    try {
+      simulationService().publishGamepads(frame)
+    } catch (error) {
+      console.error('Rejected simulation gamepad frame:', error)
+    }
+  })
+}
+
+function usefulBuildLine(value: string): string | null {
+  const line = value
+    .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '')
+    .trim()
+  if (!line) return null
+  return line.length > 300 ? `${line.slice(0, 299)}…` : line
+}
+
+function boundedTaskText(value: string, fallback: string, maxLength: number): string {
+  const text = value.trim() || fallback
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text
 }

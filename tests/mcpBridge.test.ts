@@ -29,7 +29,9 @@ describe('LogVue MCP bridge', () => {
         'get_status',
         'list_hub_logs',
         'create_session',
-        'import_hub_log'
+        'import_hub_log',
+        'get_robot_status',
+        'control_opmode'
       ])
 
       const result = CallToolResultSchema.parse(await client.callTool({ name: 'get_status', arguments: {} }))

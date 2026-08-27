@@ -51,6 +51,20 @@ export function createLogVueMcpBridge(discoveryPath: string): McpServer {
     async (args, extra) => forwardToolCall(discoveryPath, LOGVUE_MCP_TOOLS.importHubLog.name, args, extra.signal)
   )
 
+  bridge.registerTool(
+    LOGVUE_MCP_TOOLS.getRobotStatus.name,
+    LOGVUE_MCP_TOOLS.getRobotStatus.config,
+    async (_args, extra) =>
+      forwardToolCall(discoveryPath, LOGVUE_MCP_TOOLS.getRobotStatus.name, {}, extra.signal)
+  )
+
+  bridge.registerTool(
+    LOGVUE_MCP_TOOLS.controlOpMode.name,
+    LOGVUE_MCP_TOOLS.controlOpMode.config,
+    async (args, extra) =>
+      forwardToolCall(discoveryPath, LOGVUE_MCP_TOOLS.controlOpMode.name, args, extra.signal)
+  )
+
   return bridge
 }
 

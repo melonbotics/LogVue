@@ -6,6 +6,7 @@ import {
   useAppInfo,
   usePickArchiveRoot,
   usePickHubLogFolder,
+  useRebuildIndex,
   useSetAdbAddress,
   useSetConfirmDeletePopulatedSessions,
   useSetFolderTimeOffsetMinutes,
@@ -24,6 +25,7 @@ export default function SettingsDialog({ settings, onClose }: Props): JSX.Elemen
     String(settings.folderTimeOffsetMinutes)
   )
   const pickLibrary = usePickArchiveRoot()
+  const rebuild = useRebuildIndex()
   const setAdbAddress = useSetAdbAddress()
   const setHubDataSource = useSetHubDataSource()
   const pickHubLogFolder = usePickHubLogFolder()
@@ -32,6 +34,7 @@ export default function SettingsDialog({ settings, onClose }: Props): JSX.Elemen
   const setDeleteConfirmation = useSetConfirmDeletePopulatedSessions()
   const busy =
     pickLibrary.isPending ||
+    rebuild.isPending ||
     setHubDataSource.isPending ||
     pickHubLogFolder.isPending ||
     clearHubLogFolder.isPending ||
@@ -68,16 +71,34 @@ export default function SettingsDialog({ settings, onClose }: Props): JSX.Elemen
       >
         <h2>Settings</h2>
 
-        <section className="settings-section">
+        <section className="settings-section vertical">
           <div>
             <h3>Library</h3>
             <code className="settings-path" title={settings.archiveRoot ?? ''}>
               {settings.archiveRoot ?? 'No folder selected'}
             </code>
+            <span className="muted small">
+              Rescan after changing library folders outside LogVue.
+            </span>
           </div>
-          <button type="button" className="ghost sm" onClick={() => pickLibrary.mutate()} disabled={busy}>
-            Change…
-          </button>
+          <div className="settings-section-actions">
+            <button
+              type="button"
+              className="ghost sm"
+              onClick={() => pickLibrary.mutate()}
+              disabled={busy}
+            >
+              Change…
+            </button>
+            <button
+              type="button"
+              className="ghost sm"
+              onClick={() => rebuild.mutate()}
+              disabled={busy}
+            >
+              {rebuild.isPending ? 'Rescanning…' : 'Rescan library'}
+            </button>
+          </div>
         </section>
 
         <section className="settings-section vertical">

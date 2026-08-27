@@ -310,7 +310,7 @@ The app should allow adding more session types later without breaking older arch
       "filename": "AutoOpMode_log_20260704_115005_104.rlog",
       "kind": "auto_log",
       "source": "control_hub",
-      "remote_path": "/sdcard/FIRST/PsiKit/AutoOpMode_log_20260704_115005_104.rlog",
+      "remote_path": "/sdcard/FIRST/SpiderKit/AutoOpMode_log_20260704_115005_104.rlog",
       "imported_at": "2026-07-04T11:58:40+10:00",
       "original_filename": "AutoOpMode_log_20260704_115005_104.rlog",
       "file_size_bytes": 8412032
@@ -319,7 +319,7 @@ The app should allow adding more session types later without breaking older arch
       "filename": "TeleOp_log_20260704_115327_882.rlog",
       "kind": "teleop_log",
       "source": "control_hub",
-      "remote_path": "/sdcard/FIRST/PsiKit/TeleOp_log_20260704_115327_882.rlog",
+      "remote_path": "/sdcard/FIRST/SpiderKit/TeleOp_log_20260704_115327_882.rlog",
       "imported_at": "2026-07-04T11:59:10+10:00",
       "original_filename": "TeleOp_log_20260704_115327_882.rlog",
       "file_size_bytes": 9120341
@@ -347,7 +347,7 @@ The app should allow adding more session types later without breaking older arch
       "filename": "DriveTest_log_20260704_121552_901.rlog",
       "kind": "tuning_log",
       "source": "control_hub",
-      "remote_path": "/sdcard/FIRST/PsiKit/DriveTest_log_20260704_121552_901.rlog",
+      "remote_path": "/sdcard/FIRST/SpiderKit/DriveTest_log_20260704_121552_901.rlog",
       "imported_at": "2026-07-04T12:18:00+10:00",
       "original_filename": "DriveTest_log_20260704_121552_901.rlog",
       "file_size_bytes": 4021120
@@ -450,19 +450,19 @@ The app should browse `.rlog` files on the Control Hub.
 Expected path:
 
 ```text
-/sdcard/FIRST/PsiKit
+/sdcard/FIRST/SpiderKit
 ```
 
 Possible commands:
 
 ```bash
-adb shell ls -l /sdcard/FIRST/PsiKit
+adb shell ls -l /sdcard/FIRST/SpiderKit
 ```
 
 or, if supported:
 
 ```bash
-adb shell find /sdcard/FIRST/PsiKit -name "*.rlog" -type f
+adb shell find /sdcard/FIRST/SpiderKit -name "*.rlog" -type f
 ```
 
 The app should be tolerant of Android shell differences.
@@ -500,7 +500,7 @@ Parsed metadata:
 Equivalent command:
 
 ```bash
-adb pull /sdcard/FIRST/PsiKit/BlueOpMode_log_20260704_115005_104.rlog ./FTCLogArchive/2026/APOC26/Q4_Blue_B2/
+adb pull /sdcard/FIRST/SpiderKit/BlueOpMode_log_20260704_115005_104.rlog ./FTCLogArchive/2026/APOC26/Q4_Blue_B2/
 ```
 
 The app should:
@@ -1028,7 +1028,7 @@ This keeps the archive compatible with future AdvantageScope/video workflows.
 The first usable version should include:
 
 1. ADB device detection.
-2. Browsing `.rlog` files from `/sdcard/FIRST/PsiKit`.
+2. Browsing `.rlog` files from `/sdcard/FIRST/SpiderKit`.
 3. Parsing filename timestamps and opmode names.
 4. Local archive root selection.
 5. Creating session folders.

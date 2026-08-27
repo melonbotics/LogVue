@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ADB_NOT_FOUND_HINT } from '@shared/constants/adb'
 import { formatBytes } from '@shared/format/bytes'
 import type { SessionNode } from '@shared/types/session'
@@ -27,6 +28,7 @@ import ImportDialog from './ImportDialog'
 
 /** Control Hub view: the remote `.rlog` files, with selection + import/ignore actions (spec §10). */
 export default function HubLogTable(): JSX.Element {
+  const qc = useQueryClient()
   const { data: settings } = useSettings()
   const { data: adb } = useAdbStatus()
   const sourceIsFolder = settings?.hubDataSource === 'folder'
@@ -73,7 +75,7 @@ export default function HubLogTable(): JSX.Element {
   }
   if (!logs || logs.length === 0) {
     return <Notice title="No .rlog files found">
-      {sourceIsFolder ? 'No .rlog files were found in the selected folder.' : 'Nothing under the hub’s PsiKit log folder yet.'}
+      {sourceIsFolder ? 'No .rlog files were found in the selected folder.' : 'Nothing under the hub’s SpiderKit log folder yet.'}
     </Notice>
   }
 
@@ -151,6 +153,12 @@ export default function HubLogTable(): JSX.Element {
           {sourceName} <span className="muted small">({visible.length})</span>
         </h3>
         <div className="hublogs-actions">
+          <button
+            className="ghost sm"
+            onClick={() => qc.invalidateQueries({ queryKey: ['adb', 'hubLogs'] })}
+          >
+            Refresh logs
+          </button>
           <button
             className="sm"
             disabled={selectedLogs.length === 0 || importing}

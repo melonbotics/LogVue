@@ -29,6 +29,16 @@ import type {
   NewSessionImportResult
 } from './import'
 import type { Task } from './tasks'
+import type { AgentOpModeLeaseStatus } from './opmode'
+import type {
+  SimulationBuildResult,
+  SimulationCatalog,
+  SimulationGamepadFrame,
+  SimulationProject,
+  SimulationStatus,
+  SimulationStderrEvent,
+  SimulationStartConfig
+} from './simulation'
 import type {
   FtcScoutEventSearchRequest,
   FtcScoutEventSearchResult,
@@ -65,6 +75,13 @@ export interface ArchiveChangedEvent {
 export interface IpcEvents {
   'archive:changed': ArchiveChangedEvent
   'tasks:update': Task
+  'simulation:status': SimulationStatus
+  'simulation:stderr': SimulationStderrEvent
+}
+
+/** High-rate renderer-to-main messages. These deliberately do not use invoke/reply IPC. */
+export interface IpcSends {
+  'simulation:gamepads': SimulationGamepadFrame
 }
 
 export interface IpcApi {
@@ -75,9 +92,33 @@ export interface IpcApi {
   /** Open the bundled third-party license notices in the system viewer. */
   'app:openThirdPartyNotices': () => Promise<void>
 
+  // ── RobotSim (standalone CLI process) ─────────────────────
+  'simulation:getStatus': () => Promise<SimulationStatus>
+  'simulation:pickProject': () => Promise<string | null>
+  'simulation:pickRlog': () => Promise<string | null>
+  'simulation:reportError': (title: string, message: string) => Promise<void>
+  'simulation:discoverProject': (projectDirectory: string) => Promise<SimulationProject>
+  'simulation:buildProject': (projectDirectory: string) => Promise<SimulationBuildResult>
+  'simulation:listCatalog': (projectDirectory: string) => Promise<SimulationCatalog>
+  'simulation:init': (config: SimulationStartConfig) => Promise<SimulationStatus>
+  'simulation:start': () => Promise<SimulationStatus>
+  'simulation:pause': () => Promise<SimulationStatus>
+  'simulation:resume': () => Promise<SimulationStatus>
+  'simulation:step': (count?: number) => Promise<SimulationStatus>
+  'simulation:advance': (durationSeconds: number) => Promise<SimulationStatus>
+  'simulation:runUntil': (
+    config: SimulationStartConfig | null,
+    targetTimeSeconds: number
+  ) => Promise<SimulationStatus>
+  'simulation:stop': () => Promise<SimulationStatus>
+
   // ── MCP ────────────────────────────────────────────────────
   /** Whether the MCP endpoint, discovery file, and installed bridge are available. */
   'mcp:status': () => Promise<McpStatus>
+  /** Runtime-only operator gate and robot lease heartbeat health (never credentials/nonces). */
+  'mcp:agentOpModeStatus': () => Promise<AgentOpModeLeaseStatus>
+  /** Arm/disarm the main-process robot lease. Always starts disabled on app launch. */
+  'mcp:setAgentOpModeControlEnabled': (enabled: boolean) => Promise<AgentOpModeLeaseStatus>
 
   // ── settings / archive root ────────────────────────────────
   'settings:get': () => Promise<AppSettings>

@@ -189,7 +189,8 @@ input[type="checkbox"] {
 }
 
 .toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 1rem;
@@ -201,33 +202,53 @@ input[type="checkbox"] {
   font-weight: 700;
   letter-spacing: 0.02em;
 }
-.toolbar .root {
+.toolbar-left,
+.toolbar-right {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   min-width: 0;
 }
-.root-label {
-  color: var(--muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.root-path {
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--muted);
+.toolbar-right {
+  justify-content: flex-end;
 }
 
 /* ── view tabs (toolbar + dashboard mode switch) ──────────── */
-.source-switch {
+.view-switch {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+}
+.view-switch .tabs {
+  box-sizing: border-box;
+  height: 30px;
+  padding: 2px;
+}
+.view-switch .tab {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding-block: 0;
+}
+.toolbar-right > button.ghost.sm {
+  height: 30px;
+}
+@media (max-width: 900px) {
+  .toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'left right'
+      'views views';
+  }
+  .toolbar-left {
+    grid-area: left;
+  }
+  .view-switch {
+    grid-area: views;
+  }
+  .toolbar-right {
+    grid-area: right;
+  }
 }
 .source-status {
   height: 30px;
@@ -263,16 +284,53 @@ input[type="checkbox"] {
 .source-status.ok .dot {
   background: var(--good);
 }
-.mcp-request-age {
-  color: var(--muted);
-  font-weight: 400;
+.source-connection-status {
+  width: 8.5rem;
+  justify-content: center;
 }
 .mcp-status {
   cursor: pointer;
+  width: 4rem;
+  justify-content: center;
+}
+.mcp-status.ready {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.mcp-status.ready .dot {
+  background: var(--accent);
+}
+.mcp-status.active {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--good) 42%, var(--border));
+  background: color-mix(in srgb, var(--good) 8%, transparent);
+}
+.mcp-status.active .dot {
+  background: var(--good);
 }
 .mcp-status:hover {
   background: var(--panel-2);
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+.agent-control-live {
+  color: #ff8a99;
+  border-color: color-mix(in srgb, var(--red) 65%, var(--border));
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  cursor: pointer;
+}
+.agent-control-live:hover {
+  color: #fff;
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 20%, transparent);
+}
+.agent-control-live .dot {
+  background: var(--red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 18%, transparent);
+}
+.agent-control-disable {
+  color: var(--muted);
+  font-weight: 400;
 }
 .source-status.off .dot {
   background: color-mix(in srgb, var(--warn) 70%, transparent);
@@ -312,6 +370,37 @@ input[type="checkbox"] {
   color: var(--text);
   font-weight: 600;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.tab.sim-session-active {
+  gap: 0.4rem;
+  color: var(--text);
+}
+.tab.sim-session-active:not(.active) {
+  background: color-mix(in srgb, var(--good) 10%, transparent);
+}
+.sim-tab-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 14%, transparent);
+}
+.tab.sim-session-active.paused:not(.active),
+.tab.sim-session-active.stopping:not(.active) {
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+.tab.sim-session-active.paused .sim-tab-dot,
+.tab.sim-session-active.stopping .sim-tab-dot {
+  background: var(--warn);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 14%, transparent);
+}
+.tab.sim-session-active.initialized:not(.active) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.tab.sim-session-active.initialized .sim-tab-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 /* ── adb status badge ─────────────────────────────────────── */
@@ -391,6 +480,10 @@ input[type="checkbox"] {
 .latest-when {
   font-size: 11px;
   color: var(--muted);
+  white-space: nowrap;
+}
+.quick-new-session-btn {
+  flex: none;
   white-space: nowrap;
 }
 
@@ -554,6 +647,454 @@ input[type="checkbox"] {
 .detail-pane {
   flex: 1;
   min-width: 0;
+}
+
+/* ── simulation workspace ────────────────────────────────── */
+.simulate-pane {
+  background:
+    radial-gradient(circle at 78% 4%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 32rem),
+    var(--bg);
+}
+.simulate-workspace {
+  width: min(1180px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 28px 32px 42px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.sim-state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 0.38rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 650;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.sim-state-badge .dot {
+  background: var(--muted);
+}
+.sim-state-badge.running {
+  color: var(--good);
+  border-color: color-mix(in srgb, var(--good) 38%, var(--border));
+}
+.sim-state-badge.running .dot {
+  background: var(--good);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 12%, transparent);
+}
+.sim-state-badge.paused {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 38%, var(--border));
+}
+.sim-state-badge.paused .dot {
+  background: var(--warn);
+}
+.sim-state-badge.starting .dot,
+.sim-state-badge.building .dot {
+  background: var(--accent);
+}
+.sim-state-badge.initialized {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+}
+.sim-state-badge.initialized .dot {
+  background: var(--accent);
+}
+.sim-state-badge.error {
+  color: #ff8a99;
+  border-color: color-mix(in srgb, var(--red) 45%, var(--border));
+}
+.sim-state-badge.error .dot {
+  background: var(--red);
+}
+.sim-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.8fr);
+  gap: 16px;
+  align-items: start;
+}
+.sim-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.sim-card {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  overflow: hidden;
+}
+.sim-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sim-card-header h2 {
+  font-size: 0.92rem;
+}
+.sim-card-header p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.sim-project-header h2 {
+  white-space: nowrap;
+}
+.sim-project-picker {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 0;
+}
+.sim-project-picker .sim-lock {
+  margin-left: 0;
+}
+.sim-card-body {
+  padding: 16px;
+}
+.sim-card-body.compact {
+  padding: 12px 16px;
+}
+.sim-lock {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.sim-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.sim-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.sim-field.full {
+  grid-column: 1 / -1;
+}
+.sim-field > label,
+.sim-field-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.sim-field-help {
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+.sim-path-row {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.sim-path-value {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.73rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sim-project-summary {
+  box-sizing: border-box;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.sim-form-grid select {
+  height: 38px;
+}
+.sim-project-summary-field {
+  grid-column: 1;
+}
+.sim-opmode-field {
+  grid-column: 2;
+}
+.sim-scenario-field {
+  grid-column: 1;
+}
+.sim-project-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sim-project-summary > .pill {
+  margin-left: auto;
+}
+.sim-project-info {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--muted);
+  font: 650 0.72rem/1 var(--mono);
+  cursor: help;
+}
+.sim-project-info:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sim-project-rate-field {
+  grid-column: 2;
+}
+.sim-project-rate-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
+}
+.sim-project-rate-row > input {
+  width: auto;
+  min-width: 70px;
+  height: 38px;
+  flex: 1 1 90px;
+}
+.sim-project-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex: none;
+}
+.sim-project-actions button {
+  height: 38px;
+}
+.sim-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.sim-session-options {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.5fr) 1fr;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.sim-session-options input {
+  width: 100%;
+}
+.sim-input-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+}
+.sim-input-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.sim-input-card-head strong {
+  font-size: 0.79rem;
+}
+.sim-input-status {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.sim-source-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel);
+}
+.sim-source-tab {
+  padding: 0.3rem 0.4rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+.sim-source-tab:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.sim-source-tab.active {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.sim-source-detail {
+  min-height: 66px;
+  padding-top: 10px;
+}
+.sim-source-detail select {
+  font-size: 0.76rem;
+}
+.sim-controller-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+.sim-controller-hint .dot {
+  width: 6px;
+  height: 6px;
+  margin-top: 4px;
+  background: var(--warn);
+}
+.sim-controller-hint.connected .dot {
+  background: var(--good);
+}
+.sim-source-neutral {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.sim-runtime {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px 16px;
+  align-items: center;
+}
+.sim-time {
+  font-family: var(--mono);
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+.sim-time-label {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.sim-controls {
+  display: grid;
+  grid-template-columns: 88px 104px;
+  gap: 7px;
+}
+.sim-controls button {
+  width: 100%;
+  height: 34px;
+}
+.sim-metrics {
+  display: flex;
+  flex-direction: column;
+}
+.sim-metric-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.76rem;
+}
+.sim-metric-row:first-child {
+  padding-top: 0;
+}
+.sim-metric-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.sim-metric-value {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-align: right;
+}
+.sim-metric-value.good {
+  color: var(--good);
+}
+.sim-metric-value.warn {
+  color: var(--warn);
+}
+.sim-empty-runtime {
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+.sim-diagnostics {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.sim-diagnostics summary {
+  cursor: pointer;
+}
+.sim-diagnostics pre {
+  max-height: 160px;
+  margin-top: 8px;
+  padding: 9px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: #ffb3bd;
+  font: 0.66rem/1.45 var(--mono);
+  white-space: pre-wrap;
+}
+@media (max-width: 920px) {
+  .sim-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 680px) {
+  .simulate-workspace {
+    padding: 20px 16px 32px;
+  }
+  .sim-form-grid,
+  .sim-inputs,
+  .sim-session-options {
+    grid-template-columns: 1fr;
+  }
+  .sim-project-summary-field,
+  .sim-opmode-field,
+  .sim-scenario-field,
+  .sim-project-rate-field {
+    grid-column: 1;
+  }
 }
 
 /* ── session tree ─────────────────────────────────────────── */
@@ -1574,6 +2115,54 @@ button.chip.meta.more {
 .mcp-copy-button {
   align-self: flex-start;
 }
+.agent-opmode-control {
+  gap: 0.7rem;
+}
+.agent-opmode-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.agent-opmode-state {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+}
+.agent-opmode-state.state-active {
+  color: var(--good);
+}
+.agent-opmode-state.state-degraded,
+.agent-opmode-state.state-acquiring {
+  color: var(--warn);
+}
+.agent-opmode-state .dot {
+  background: currentColor;
+}
+.agent-opmode-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  color: var(--muted);
+}
+.agent-opmode-details code {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.agent-opmode-control .warning {
+  color: var(--warn);
+}
+.agent-opmode-warning {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
+  border-radius: 6px;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
 .settings-section {
   display: flex;
   align-items: center;
@@ -1589,6 +2178,12 @@ button.chip.meta.more {
 .settings-section h3 {
   font-size: 0.9rem;
   margin: 0 0 0.35rem;
+}
+.settings-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
 }
 .about-copy {
   display: flex;
@@ -1889,7 +2484,8 @@ button.chip.meta.more {
 }
 .spinner-import,
 .spinner-ftcscout,
-.spinner-adb {
+.spinner-adb,
+.spinner-simulation {
   border-top-color: var(--accent);
 }
 .spinner-reindex {
@@ -1929,7 +2525,8 @@ button.chip.meta.more {
 }
 .bar-fill-import,
 .bar-fill-ftcscout,
-.bar-fill-adb {
+.bar-fill-adb,
+.bar-fill-simulation {
   background: var(--accent);
 }
 .bar-fill-reindex {

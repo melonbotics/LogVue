@@ -8,7 +8,7 @@ import type { SessionQuery } from '@shared/types/query'
 import type { SessionFileSort } from '../lib/sessionFiles'
 
 /** Which top-level view the main pane shows. */
-export type View = 'archive' | 'device'
+export type View = 'archive' | 'simulate' | 'device'
 
 /** Quick-find alliance chip. */
 export type AllianceFilter = 'all' | 'red' | 'blue' | 'none'
@@ -30,7 +30,7 @@ interface AppState {
   /** Absolute path of the currently selected session/folder, or null. */
   selectedPath: string | null
   select: (path: string | null) => void
-  /** 'archive' = local sessions, 'device' = Control Hub logs. */
+  /** Top-level LogVue workspace. */
   view: View
   setView: (view: View) => void
   /** Select a session and jump to the Archive view (used from log rows / hub links). */

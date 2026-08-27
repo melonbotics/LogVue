@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { extractRlogMetadata } from '../src/main/services/rlog/rlogMetadata'
 import { collectIndexRows } from '../src/main/services/index/rebuild'
 
-// ── synthetic RLOG R2 builders (format: PsiKit RLOGEncoder) ──
+// ── synthetic RLOG R2 builders (format: SpiderKit RLOGEncoder) ──
 
 function timestamp(t: number): Buffer {
   const b = Buffer.alloc(9)
